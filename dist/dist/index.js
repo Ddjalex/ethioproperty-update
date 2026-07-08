@@ -3520,6 +3520,12 @@ app.use((req, res, next) => {
     log(`Error initializing database: ${error}`);
   }
   const server = await registerRoutes(app);
+  try {
+    const { setup: setupExtensions } = await import('../../extensions/features.js');
+    await setupExtensions(app, server);
+  } catch (extErr) {
+    console.error('[extensions] Failed to load:', extErr.message);
+  }
   app.use((err, _req, res, _next) => {
     console.error("Global error handler caught:", err);
     const status = err.status || err.statusCode || 500;

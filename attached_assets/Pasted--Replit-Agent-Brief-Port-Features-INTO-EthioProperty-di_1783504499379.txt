@@ -1,0 +1,73 @@
+# Replit Agent Brief — Port Features INTO EthioProperty (dist.zip)
+
+## Correct direction (important)
+- Target / working project = THIS repl (dist/ folder) → this is ethioproperty.com, the site that needs the update.
+- Source = _source_primeaddis/ → this is primeaddiset.com (a different client's site). It already has the 4 features built. Pull code FROM here, do not deploy it.
+- Do not merge the two projects wholesale. Copy only the specific files listed below, and adapt branding/URLs as noted.
+
+## Confirm current EthioProperty branding before starting, so nothing gets overwritten by accident:
+- Title: "Ethio Property - Premier Real Estate in Ethiopia"
+- Domain: https://ethioproperty.com/
+- Logo/OG image: /assets/ethioproperty.png
+- Favicons: /favicon.ico, /assets/favicon.svg, /favicon-32x32.png
+
+## STEP 1 — Copy the 4 feature files from _source_primeaddis/ into this project
+
+A. Map + price range
+- Copy _source_primeaddis/dist/public/assets/subcities-map-patch.js → this project's dist/dist/public/assets/subcities-map-patch.js
+- Also copy _source_primeaddis/dist/public/assets/addis-subcities.svg → same assets folder (required, the map file fetches it at runtime)
+
+B. Ask AI (Gemini)
+- Copy _source_primeaddis/dist/public/assets/ai-voice-assistant-patch.js → this project's assets folder
+- Copy _source_primeaddis/dist/public/assets/admin-ai-prompt-patch.js → this project's assets folder
+- In ai-voice-assistant-patch.js, find any hardcoded "Prime Addis" branding text (e.g. header: 'Prime Addis AI', poweredBy) and rename to "Ethio Property" equivalents
+
+C. Lead capture (name, phone, email)
+- Copy _source_primeaddis/dist/public/assets/visitor-subscribe-patch.js → this project's assets folder
+- Copy _source_primeaddis/dist/public/assets/admin-subscribers-patch.js → this project's assets folder
+- In visitor-subscribe-patch.js, find the GOLD/NAVY hex color constants near the top and replace with this project's own colors, not Prime Addis's
+
+D. Blog
+- The blog backend lives inside _source_primeaddis/extensions/features.js (functions: registerBlogRoutes, pageHead, pageFooter, plus /blog and /blog/:slug SSR routes and /api/admin/blog CRUD routes)
+- Copy just the blog-related functions/routes, plus the AI chat backend routes (/api/ai/chat, /api/ai/chat-stream, /api/ai/tts, /api/ai/prompt/:lang, /api/ai/greeting/:lang, /api/admin/ai-prompts), into a NEW file extensions/features.js in this project's root (sibling of the dist/ folder)
+- Do not copy the about/portfolio/partners routes
+- Update every hardcoded "Prime Addis" or primeaddis.com string to this project's own name/domain
+
+## STEP 2 — Wire the new extensions file into the server
+File: dist/dist/index.js (note: nested two levels deep in this project)
+Add, right after routes are registered:
+try {
+  const { setup: setupExtensions } = await import('../../extensions/features.js');
+  await setupExtensions(app, server);
+} catch (extErr) {
+  console.error('[extensions] Failed to load:', extErr.message);
+}
+Confirm extensions/features.js sits at the project root (sibling of the outer dist/), matching the ../../ path.
+
+## STEP 3 — Add script tags
+File: dist/dist/public/index.html
+After the existing 3 patch script tags, add:
+<script type="text/javascript" src="/assets/subcities-map-patch.js?v=1"></script>
+<script type="text/javascript" src="/assets/ai-voice-assistant-patch.js?v=1"></script>
+<script type="text/javascript" src="/assets/admin-ai-prompt-patch.js?v=1"></script>
+<script type="text/javascript" src="/assets/visitor-subscribe-patch.js?v=1"></script>
+<script type="text/javascript" src="/assets/admin-subscribers-patch.js?v=1"></script>
+Do not touch existing <title>, <meta>, <link rel="canonical">, or other script tags.
+
+## STEP 4 — Database and secrets
+- Generate a fresh Gemini API key for EthioProperty (do not reuse Prime Addis's key). Ask me for it — don't invent one.
+- Create blog_posts table (CREATE TABLE statement is in the copied features.js) and a subscribers table if one doesn't already exist, in EthioProperty's own database.
+- Never read, print, or move real .env contents between projects.
+
+## EXCLUDE — never carry these over from Prime Addis
+1. Colors/theme/CSS variables — keep EthioProperty's own palette
+2. .env contents — never copy real values
+3. SEO/meta tags, robots.txt, canonical URL, manifest.json — keep EthioProperty's own
+4. Footer/contact info patches — don't copy dynamic-contact-info-patch.js or footer-social-patch.js
+5. Logo/branding files and any "Prime Addis" text strings
+6. Every other Prime Addis patch file not explicitly listed above (VR tour, PWA install, TikTok settings, login page layout, etc.)
+
+## Deliverable check
+When done, grep the whole project for the string "Prime Addis" — it should return zero matches outside of _source_primeaddis/.
+
+Please work through Steps 1-3 first and pause before Step 4 (I need to give you a fresh Gemini key and confirm database details).
