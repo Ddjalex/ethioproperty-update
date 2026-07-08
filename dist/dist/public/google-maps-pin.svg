@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Map pin">
+  <defs>
+    <clipPath id="pin">
+      <path d="M256 24c-94.9 0-172 77.1-172 172 0 129.6 144.3 285.7 162.2 304.5 5.2 5.4 12.4 8.5 19.8 8.5s14.6-3.1 19.8-8.5C283.7 481.7 428 325.6 428 196 428 101.1 350.9 24 256 24z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Pin shadow/outline -->
+  <path d="M256 24c-94.9 0-172 77.1-172 172 0 129.6 144.3 285.7 162.2 304.5 5.2 5.4 12.4 8.5 19.8 8.5s14.6-3.1 19.8-8.5C283.7 481.7 428 325.6 428 196 428 101.1 350.9 24 256 24z"
+        fill="#ffffff"/>
+  <path d="M256 24c-94.9 0-172 77.1-172 172 0 129.6 144.3 285.7 162.2 304.5 5.2 5.4 12.4 8.5 19.8 8.5s14.6-3.1 19.8-8.5C283.7 481.7 428 325.6 428 196 428 101.1 350.9 24 256 24z"
+        fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="10"/>
+
+  <!-- Color segments clipped to pin -->
+  <g clip-path="url(#pin)">
+    <rect x="0" y="0" width="512" height="256" fill="#4285F4"/>
+    <rect x="0" y="256" width="256" height="256" fill="#FBBC05"/>
+    <rect x="256" y="256" width="256" height="256" fill="#34A853"/>
+    <path d="M0 0h256v512H0z" fill="#EA4335" opacity="0.92"/>
+    <!-- Blend diagonals for a more 'maps-like' look -->
+    <path d="M84 140 L256 312 L428 140 L428 0 L84 0 Z" fill="#4285F4" opacity="0.9"/>
+    <path d="M84 140 L256 312 L84 484 L0 484 L0 140 Z" fill="#FBBC05" opacity="0.9"/>
+    <path d="M256 312 L428 140 L512 140 L512 512 L256 512 Z" fill="#34A853" opacity="0.9"/>
+  </g>
+
+  <!-- Center hole -->
+  <circle cx="256" cy="210" r="82" fill="#ffffff"/>
+</svg>

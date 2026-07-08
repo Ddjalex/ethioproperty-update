@@ -1,0 +1,7 @@
+# Node app config
+PassengerAppRoot "/home/ethiopad/public_html/ethioproperty"
+PassengerBaseURI "/"
+PassengerNodejs "/home/ethiopad/nodevenv/public_html/ethioproperty/20/bin/node"
+PassengerAppType node
+PassengerStartupFile dist/index.js
+PassengerEnabled On

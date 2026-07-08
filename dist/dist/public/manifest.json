@@ -1,0 +1,33 @@
+{
+  "name": "Ethio Property - Premier Real Estate in Ethiopia",
+  "short_name": "Ethio Property", 
+  "description": "Find your dream property in Ethiopia. Browse residential, commercial, and rental properties across Addis Ababa and other major cities.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4A6741",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/ethioproperty.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "finance", "lifestyle"],
+  "lang": "en-US",
+  "scope": "/"
+}

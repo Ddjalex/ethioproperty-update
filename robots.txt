@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Block admin & API (important)
+Disallow: /api/
+Disallow: /auth
+Disallow: /admin
+
+# Allow property pages
+Allow: /property/
+
+Sitemap: https://ethioproperty.com/sitemap.xml
