@@ -190,8 +190,9 @@
       flex: 1 1 auto; overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
+      scroll-behavior: smooth;
       padding: 16px 14px;
-      display: flex; flex-direction: column; gap: 12px;
+      display: flex; flex-direction: column; gap: 3px;
       min-height: 0;
       background: #f8faff;
     }
@@ -199,14 +200,27 @@
     .pa-msgs::-webkit-scrollbar-track { background: transparent; }
     .pa-msgs::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 4px; }
 
-    .pa-msg-row { display: flex; align-items: flex-end; gap: 8px; }
+    .pa-msg-group { display: flex; flex-direction: column; gap: 3px; margin-bottom: 9px; }
+
+    .pa-msg-row {
+      display: flex; align-items: flex-end; gap: 8px;
+      animation: pa-msg-in 0.32s cubic-bezier(0.22,1,0.36,1) both;
+    }
     .pa-msg-row.user { flex-direction: row-reverse; }
+    @keyframes pa-msg-in {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pa-msg-row { animation: none; }
+    }
 
     .pa-msg-avatar {
       width: 30px; height: 30px; border-radius: 50%;
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       display: flex; align-items: center; justify-content: center;
       font-size: 14px; flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(99,102,241,0.35);
     }
 
     .pa-msg {
@@ -230,6 +244,29 @@
       border-bottom-right-radius: 5px;
       box-shadow: 0 3px 10px rgba(79,70,229,0.3);
     }
+
+    /* ── Timestamps ── */
+    .pa-msg-time {
+      font-size: 10px; color: #a3aed0;
+      padding: 0 40px; margin-top: -1px;
+      opacity: 0.85; user-select: none;
+    }
+    .pa-msg-row.user + .pa-msg-time { text-align: right; }
+
+    /* ── Quick-reply suggestions ── */
+    .pa-quick-replies {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 2px 4px 8px 40px;
+      animation: pa-msg-in 0.32s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .pa-qr-chip {
+      padding: 6px 12px; border-radius: 14px;
+      background: #fff; border: 1.5px solid #c7d2fe;
+      color: #4338ca; font-size: 11.5px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.15s;
+    }
+    .pa-qr-chip:hover { background: #eef2ff; border-color: #818cf8; transform: translateY(-1px); }
 
     /* ── Typing indicator ── */
     .pa-typing-dots {
@@ -274,8 +311,14 @@
       font-family: inherit;
       color: #1e293b;
       background: #f8faff;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s, border-radius 0.15s;
+      resize: none;
+      max-height: 108px;
+      min-height: 40px;
+      line-height: 1.4;
+      overflow-y: auto;
     }
+    .pa-input.pa-multiline { border-radius: 18px; }
     .pa-input:focus {
       border-color: #8b5cf6;
       box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
@@ -466,7 +509,7 @@
     <div class="pa-status" id="pa-status"></div>
     <div class="pa-input-wrap">
       <div class="pa-input-row">
-        <input class="pa-input" id="pa-input" placeholder="${t('placeholder')}" type="text" autocomplete="off" />
+        <textarea class="pa-input" id="pa-input" placeholder="${t('placeholder')}" rows="1" autocomplete="off"></textarea>
         <button class="pa-icon-btn pa-mic-lang am" id="pa-mic-lang" title="Mic language">አማ</button>
         <button class="pa-icon-btn pa-mic-btn" id="pa-mic" title="${t('mic')}">🎤</button>
         <button class="pa-icon-btn pa-live-btn" id="pa-live" title="Live voice conversation">🎙️</button>
@@ -574,6 +617,23 @@
   }).observe(document.documentElement, { childList: true, subtree: true });
 
   /* ── Message rendering ──────────────────────── */
+  var AI_AVATAR = '🏠'; // reuse the welcome-screen house icon so the assistant reads as one coherent identity
+
+  function scrollToBottom() {
+    /* rAF so layout (e.g. images, chip rows) settles before measuring scrollHeight */
+    requestAnimationFrame(function () {
+      msgsEl.scrollTo({ top: msgsEl.scrollHeight, behavior: 'smooth' });
+    });
+  }
+
+  function formatTime(d) {
+    try {
+      return d.toLocaleTimeString(lang === 'am' ? 'am-ET' : 'en-US', { hour: 'numeric', minute: '2-digit' });
+    } catch (e) {
+      return '';
+    }
+  }
+
   function addMessage(role, html, isTyping) {
     if (isTyping) {
       var existing = document.getElementById('pa-typing-row');
@@ -581,15 +641,17 @@
       var row = document.createElement('div');
       row.className = 'pa-msg-row';
       row.id = 'pa-typing-row';
-      row.innerHTML = '<div class="pa-msg-avatar">🤖</div><div class="pa-msg ai"><div class="pa-typing-dots"><span></span><span></span><span></span></div></div>';
+      row.innerHTML = '<div class="pa-msg-avatar">' + AI_AVATAR + '</div><div class="pa-msg ai"><div class="pa-typing-dots"><span></span><span></span><span></span></div></div>';
       msgsEl.appendChild(row);
-      msgsEl.scrollTop = msgsEl.scrollHeight;
+      scrollToBottom();
       return row;
     }
+    var group = document.createElement('div');
+    group.className = 'pa-msg-group';
     var row = document.createElement('div');
     row.className = 'pa-msg-row ' + role;
     var avatarHtml = role === 'ai'
-      ? '<div class="pa-msg-avatar">🤖</div>'
+      ? '<div class="pa-msg-avatar">' + AI_AVATAR + '</div>'
       : '<div class="pa-msg-avatar" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-size:13px;">👤</div>';
     var msgDiv = document.createElement('div');
     msgDiv.className = 'pa-msg ' + role;
@@ -601,8 +663,13 @@
       row.appendChild(msgDiv);
       row.innerHTML += avatarHtml;
     }
-    msgsEl.appendChild(row);
-    msgsEl.scrollTop = msgsEl.scrollHeight;
+    var timeEl = document.createElement('div');
+    timeEl.className = 'pa-msg-time';
+    timeEl.textContent = formatTime(new Date());
+    group.appendChild(row);
+    group.appendChild(timeEl);
+    msgsEl.appendChild(group);
+    scrollToBottom();
     return row;
   }
 
@@ -612,6 +679,39 @@
   }
 
   function setStatus(text) { statusEl.textContent = text || ''; }
+
+  /* ── Post-reply quick-reply suggestions ── */
+  var QUICK_REPLIES = {
+    en: ['Show me apartments', "What's the price range?", 'Schedule a viewing'],
+    am: ['አፓርታማ አሳየኝ', 'የዋጋ ክልል ምንድን ነው?', 'ለመጎብኘት ቀጠሮ ያዙ']
+  };
+
+  function removeQuickReplies() {
+    var el = document.getElementById('pa-quick-replies');
+    if (el) el.remove();
+  }
+
+  function showQuickReplies() {
+    removeQuickReplies();
+    var suggestions = QUICK_REPLIES[lang] || QUICK_REPLIES.en;
+    var wrap = document.createElement('div');
+    wrap.className = 'pa-quick-replies';
+    wrap.id = 'pa-quick-replies';
+    suggestions.forEach(function (s) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'pa-qr-chip';
+      chip.textContent = s;
+      chip.addEventListener('click', function () {
+        removeQuickReplies();
+        inputEl.value = s;
+        sendMessage();
+      });
+      wrap.appendChild(chip);
+    });
+    msgsEl.appendChild(wrap);
+    scrollToBottom();
+  }
 
   /* ── Quick suggestion chips ─────────────────── */
   function showWelcomeCard() {
@@ -637,7 +737,7 @@
       });
     });
     msgsEl.appendChild(card);
-    msgsEl.scrollTop = msgsEl.scrollHeight;
+    scrollToBottom();
   }
 
   /* ── Speech Synthesis ───────────────────────── */
@@ -1169,9 +1269,11 @@
       applyMicLangUI(); updateUIText();
     }
     inputEl.value = '';
-    // Remove welcome card if present
+    resetInputHeight();
+    // Remove welcome card / stale quick-replies if present
     var wc = document.getElementById('pa-welcome-card');
     if (wc) wc.remove();
+    removeQuickReplies();
 
     addMessage('user', text);
     messages.push({ role: 'user', content: text });
@@ -1209,6 +1311,7 @@
           messages.push({ role: 'assistant', content: reply });
           addMessage('ai', reply);
           speak(reply);
+          showQuickReplies();
         });
       }
 
@@ -1218,23 +1321,28 @@
       var fullText = '';
       var msgEl = null;
 
+      var streamGroup = null;
+
       function ensureMsgEl() {
         if (msgEl) return;
         removeTyping(); setStatus('');
+        streamGroup = document.createElement('div');
+        streamGroup.className = 'pa-msg-group';
         var row = document.createElement('div');
         row.className = 'pa-msg-row';
-        row.innerHTML = '<div class="pa-msg-avatar">🤖</div>';
+        row.innerHTML = '<div class="pa-msg-avatar">' + AI_AVATAR + '</div>';
         msgEl = document.createElement('div');
         msgEl.className = 'pa-msg ai';
         row.appendChild(msgEl);
-        msgsEl.appendChild(row);
+        streamGroup.appendChild(row);
+        msgsEl.appendChild(streamGroup);
       }
 
       function appendDelta(d) {
         ensureMsgEl();
         fullText += d;
         msgEl.textContent = fullText;
-        msgsEl.scrollTop = msgsEl.scrollHeight;
+        scrollToBottom();
       }
 
       function processBuffer() {
@@ -1263,11 +1371,24 @@
             processBuffer();
             if (fullText) {
               messages.push({ role: 'assistant', content: fullText });
+              if (streamGroup) {
+                var timeEl = document.createElement('div');
+                timeEl.className = 'pa-msg-time';
+                timeEl.textContent = formatTime(new Date());
+                streamGroup.appendChild(timeEl);
+              }
               speak(fullText);
+              showQuickReplies();
             } else {
               var fallback = lang === 'am' ? 'ይቅርታ፣ ምላሽ አልተገኘም።' : 'Sorry, no response was generated.';
               ensureMsgEl();
               msgEl.textContent = fallback;
+              if (streamGroup) {
+                var fbTimeEl = document.createElement('div');
+                fbTimeEl.className = 'pa-msg-time';
+                fbTimeEl.textContent = formatTime(new Date());
+                streamGroup.appendChild(fbTimeEl);
+              }
             }
             return;
           }
@@ -1360,6 +1481,8 @@
     if (hb) hb.classList.add('active');
     var mhb = document.getElementById('pa-ai-mobile-header-btn');
     if (mhb) mhb.classList.add('active');
+
+    resetInputHeight();
 
     if (messages.length === 0 && !langPickerShown) {
       langPickerShown = true;
@@ -1531,10 +1654,26 @@
     setStatus('');
   }
 
+  /* ── Auto-grow input ────────────────────────── */
+  function resetInputHeight() {
+    inputEl.style.height = 'auto';
+    inputEl.classList.remove('pa-multiline');
+  }
+
+  function autoGrowInput() {
+    inputEl.style.height = 'auto';
+    var newHeight = Math.min(inputEl.scrollHeight, 108);
+    inputEl.style.height = newHeight + 'px';
+    inputEl.classList.toggle('pa-multiline', inputEl.value.indexOf('\n') !== -1 || newHeight > 44);
+  }
+
   /* ── Events ──────────────────────────────────── */
   closeEl.addEventListener('click', closePanel);
   sendEl.addEventListener('click', sendMessage);
-  inputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendMessage(); });
+  inputEl.addEventListener('input', autoGrowInput);
+  inputEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
   micEl.addEventListener('click', function () { isListening ? stopListening() : startListening(); });
   langEl.addEventListener('click', toggleLang);
   if (micLangEl) micLangEl.addEventListener('click', toggleMicLang);
