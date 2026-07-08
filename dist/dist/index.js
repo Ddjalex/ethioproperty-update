@@ -3479,11 +3479,16 @@ function serveStatic(app2) {
 }
 
 // server/index.ts
-dotenv.config();
+dotenv.config({ override: true });
 init_auth();
 init_storage();
 console.log("DEBUG: process.cwd()=", process.cwd());
-console.log("DEBUG: DATABASE_URL=", process.env.DATABASE_URL);
+try {
+  const dbHost = new URL(process.env.DATABASE_URL || "").host;
+  console.log("DEBUG: Connected DB host=", dbHost || "(not set)");
+} catch {
+  console.log("DEBUG: DATABASE_URL is not a valid URL");
+}
 var app = express2();
 app.use(express2.json());
 app.use(express2.urlencoded({ extended: false }));
