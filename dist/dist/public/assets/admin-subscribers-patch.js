@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var PATCH_KEY = '__primeAddisSubscribersPatch_v1__';
+  var PATCH_KEY = '__ethioPropertySubscribersPatch_v1__';
   if (window[PATCH_KEY]) return;
   window[PATCH_KEY] = true;
 
@@ -56,7 +56,7 @@
     });
 
     var rows = filtered.length === 0
-      ? '<tr><td colspan="7" class="sub-empty">No property requests found</td></tr>'
+      ? '<tr><td colspan="7" class="sub-empty">No subscribers found</td></tr>'
       : filtered.map(function (r) {
           var date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-GB') : '—';
           return '<tr>' +
@@ -73,8 +73,8 @@
     var html = '<div id="sub-page">' +
       '<div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:20px;">' +
         '<div>' +
-          '<h1>Property Update Requests</h1>' +
-          '<p class="sub-desc">Visitors who submitted the "Request Property Updates" form</p>' +
+          '<h1>Subscribers</h1>' +
+          '<p class="sub-desc">Visitors who subscribed for property alerts</p>' +
         '</div>' +
         '<div style="margin-left:auto;">' +
           '<a class="sub-back" href="/admin/dashboard">&#8592; Back to Dashboard</a>' +
@@ -82,7 +82,7 @@
       '</div>' +
       '<div class="sub-toolbar">' +
         '<input class="sub-search" placeholder="Search by name, email, phone, interests..." value="' + esc(subSearch) + '" oninput="window.__subSearch(this.value)" />' +
-        '<span class="sub-count">' + filtered.length + ' of ' + subData.length + ' requests</span>' +
+        '<span class="sub-count">' + filtered.length + ' of ' + subData.length + ' subscribers</span>' +
       '</div>' +
       '<table>' +
         '<thead><tr>' +
@@ -125,7 +125,7 @@
   /* ── Add sidebar button to admin dashboard ── */
   function addSidebarButton() {
     if (!/^\/admin/i.test(location.pathname)) return;
-    if (location.pathname.includes('property-requests')) return;
+    if (location.pathname.includes('subscribers')) return;
     if (document.getElementById('sub-sidebar-btn')) return;
 
     var allEls = Array.from(document.querySelectorAll('button, a'));
@@ -138,11 +138,11 @@
     var subBtn = document.createElement('a');
     subBtn.id = 'sub-sidebar-btn';
     subBtn.className = inquiriesBtn.className;
-    subBtn.href = '/admin/property-requests';
-    subBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg> View Property Requests';
+    subBtn.href = '/admin/subscribers';
+    subBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg> View Subscribers';
     subBtn.addEventListener('click', function (e) {
       e.preventDefault();
-      history.pushState(null, '', '/admin/property-requests');
+      history.pushState(null, '', '/admin/subscribers');
       schedule();
     });
 
@@ -153,7 +153,7 @@
   function handleRoute() {
     var path = location.pathname;
     ensureStyles();
-    if (path === '/admin/property-requests') {
+    if (path === '/admin/subscribers') {
       loadAndRender();
     } else if (/^\/admin/.test(path)) {
       addSidebarButton();

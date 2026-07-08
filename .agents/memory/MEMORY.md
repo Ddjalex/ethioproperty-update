@@ -1,0 +1,2 @@
+- [dotenv vs Replit-managed env vars](dotenv-vs-replit-secrets.md) — dotenv.config() never overrides an already-set process.env var; matters for DATABASE_URL and other runtime-managed keys.
+- [npm package-firewall CVE blocks](npm-firewall-overrides.md) — fix blocked transitive deps (e.g. form-data, fast-xml-parser) via package.json "overrides" to a patched version, not by bypassing the firewall.

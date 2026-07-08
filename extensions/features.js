@@ -2,6 +2,7 @@ import pg from 'pg';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import sanitizeHtml from 'sanitize-html';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,6 +27,8 @@ function escHtml(s) {
 }
 
 function getExampleEnvValue(key) {
+  // Only used as a last-resort fallback for local/dev convenience; real
+  // secrets from process.env must always take priority over this.
   try {
     const text = fs.readFileSync(path.join(process.cwd(), '.env.example'), 'utf8');
     const line = text.split(/\r?\n/).find(l => l.startsWith(`${key}=`));
@@ -267,7 +270,16 @@ function registerBlogSSRRoutes(app, pool) {
       html += `<h1>${escHtml(post.title)}</h1>`;
       html += `<div class="card-meta" style="margin-bottom:24px">${formatDate(post.published_at || post.created_at)} &bull; ${escHtml(post.author || 'Ethio Property')}</div>`;
       if (post.featured_image) html += `<img class="featured-img" src="${escHtml(post.featured_image)}" alt="${escHtml(post.title)}">`;
-      html += `<div>${post.content || ''}</div>`;
+      const safeContent = sanitizeHtml(post.content || '', {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'figure', 'figcaption']),
+        allowedAttributes: {
+          ...sanitizeHtml.defaults.allowedAttributes,
+          img: ['src', 'alt', 'title', 'width', 'height'],
+          a: ['href', 'name', 'target', 'rel'],
+        },
+        allowedSchemes: ['http', 'https', 'mailto'],
+      });
+      html += `<div>${safeContent}</div>`;
       html += `<div style="margin-top:48px"><a href="/blog" class="back-btn">&#8592; Back to Blog</a></div>`;
       html += `</div></div>`;
       html += pageFooter();
@@ -507,7 +519,7 @@ function registerAIRoutes(app, pool) {
   /* POST /api/ai/chat  — proxies to Gemini Flash (non-streaming, kept for back-compat) */
   app.post('/api/ai/chat', async (req, res) => {
     try {
-      const apiKey = getExampleEnvValue('GEMINI_API_KEY') || process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || getExampleEnvValue('GEMINI_API_KEY');
       const built = await buildChatRequest(req.body || {});
       const lang = built.lang;
       if (!apiKey) return res.json({ text: aiFallbackText(lang), limited: true });
@@ -551,7 +563,7 @@ function registerAIRoutes(app, pool) {
     };
 
     try {
-      const apiKey = getExampleEnvValue('GEMINI_API_KEY') || process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || getExampleEnvValue('GEMINI_API_KEY');
       const built = await buildChatRequest(req.body || {});
       const lang = built.lang;
       if (!apiKey) return finishWith(aiFallbackText(lang));
@@ -673,7 +685,7 @@ function registerAIRoutes(app, pool) {
       if (!text || typeof text !== 'string') {
         return res.status(400).json({ error: 'text required' });
       }
-      const apiKey = getExampleEnvValue('GEMINI_API_KEY') || process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || getExampleEnvValue('GEMINI_API_KEY');
       if (!apiKey) return res.status(503).json({ error: 'tts unavailable' });
 
       const cleanText = text.slice(0, 1500);

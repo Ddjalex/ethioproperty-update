@@ -3479,7 +3479,7 @@ function serveStatic(app2) {
 }
 
 // server/index.ts
-dotenv.config({ override: true });
+dotenv.config();
 init_auth();
 init_storage();
 console.log("DEBUG: process.cwd()=", process.cwd());

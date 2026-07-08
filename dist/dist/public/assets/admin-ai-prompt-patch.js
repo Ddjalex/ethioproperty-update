@@ -15,7 +15,7 @@
       bottom: 90px;
       left: 20px;
       z-index: 9000;
-      background: #7c3aed;
+      background: #90824B;
       color: #fff;
       border: none;
       border-radius: 12px;
@@ -23,14 +23,14 @@
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(124,58,237,.4);
+      box-shadow: 0 4px 16px rgba(15,23,41,.35);
       display: none;
       align-items: center;
       gap: 7px;
       transition: background .15s, transform .1s;
       font-family: inherit;
     }
-    #aip-fab:hover { background: #6d28d9; transform: translateY(-2px); }
+    #aip-fab:hover { background: #0F1729; transform: translateY(-2px); }
     #aip-fab.visible { display: none; }
 
     #aip-overlay {
@@ -71,8 +71,8 @@
       gap: 8px;
     }
     .aip-badge {
-      background: #ede9fe;
-      color: #5b21b6;
+      background: #f2eee2;
+      color: #0F1729;
       font-size: 0.68rem;
       font-weight: 700;
       padding: 2px 8px;
@@ -112,8 +112,8 @@
       transition: all .15s;
     }
     .aip-tab.active {
-      background: #7c3aed;
-      border-color: #7c3aed;
+      background: #90824B;
+      border-color: #90824B;
       color: #fff;
     }
     #aip-textarea {
@@ -132,7 +132,7 @@
     }
     #aip-textarea:focus {
       outline: none;
-      border-color: #7c3aed;
+      border-color: #90824B;
     }
     .aip-footer {
       display: flex;
@@ -161,7 +161,7 @@
     #aip-status.success { display: inline-block; background: #d1fae5; color: #065f46; }
     #aip-status.error   { display: inline-block; background: #fee2e2; color: #991b1b; }
     #aip-save-btn {
-      background: #7c3aed;
+      background: #90824B;
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -171,7 +171,7 @@
       cursor: pointer;
       transition: background .15s;
     }
-    #aip-save-btn:hover:not(:disabled) { background: #6d28d9; }
+    #aip-save-btn:hover:not(:disabled) { background: #0F1729; }
     #aip-save-btn:disabled { opacity: .5; cursor: not-allowed; }
   `;
   document.head.appendChild(style);
@@ -263,7 +263,7 @@
     if (overlay) overlay.classList.remove('aip-open');
   }
 
-  window.primeAddisOpenAIPrompt = function () {
+  window.ethioPropertyOpenAIPrompt = function () {
     if (!document.getElementById('aip-overlay')) {
       try { buildUI(); } catch (e) {}
     }
