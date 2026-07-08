@@ -1,44 +1,18 @@
 (function () {
   'use strict';
-  if (window.__ADMIN_AI_PROMPT_PATCH__) return;
-  window.__ADMIN_AI_PROMPT_PATCH__ = '2.0.0';
+  var PATCH_KEY = '__ADMIN_AI_PROMPT_PATCH_V3__';
+  if (window[PATCH_KEY]) return;
+  window[PATCH_KEY] = true;
 
-  function isAdminRoute() {
-    return window.location.pathname.startsWith('/admin');
-  }
-
-  /* ── Styles ── */
+  /* ── Styles (Ethio Property admin palette — matches Manage Subscribers/Users) ── */
   var style = document.createElement('style');
   style.textContent = `
-    #aip-fab {
-      position: fixed;
-      bottom: 90px;
-      left: 20px;
-      z-index: 9000;
-      background: #90824B;
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      padding: 10px 16px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(15,23,41,.35);
-      display: none;
-      align-items: center;
-      gap: 7px;
-      transition: background .15s, transform .1s;
-      font-family: inherit;
-    }
-    #aip-fab:hover { background: #0F1729; transform: translateY(-2px); }
-    #aip-fab.visible { display: none; }
-
     #aip-overlay {
       display: none !important;
       position: fixed !important;
       inset: 0 !important;
       z-index: 9999 !important;
-      background: rgba(0,0,0,.55) !important;
+      background: rgba(15,23,42,.55) !important;
       align-items: center !important;
       justify-content: center !important;
       padding: 16px !important;
@@ -63,16 +37,16 @@
     }
     #aip-modal-header h2 {
       font-size: 1.15rem;
-      font-weight: 800;
-      color: #111;
+      font-weight: 700;
+      color: #0f172a;
       margin: 0;
       display: flex;
       align-items: center;
       gap: 8px;
     }
     .aip-badge {
-      background: #f2eee2;
-      color: #0F1729;
+      background: #eff6ff;
+      color: #2563eb;
       font-size: 0.68rem;
       font-weight: 700;
       padding: 2px 8px;
@@ -83,16 +57,16 @@
       border: none;
       font-size: 22px;
       cursor: pointer;
-      color: #6b7280;
+      color: #64748b;
       line-height: 1;
       padding: 4px;
       border-radius: 6px;
     }
-    #aip-close-btn:hover { background: #f3f4f6; }
+    #aip-close-btn:hover { background: #f1f5f9; }
     #aip-modal-body { padding: 18px 26px 26px; }
     .aip-sub {
       font-size: 0.82rem;
-      color: #6b7280;
+      color: #64748b;
       margin: 4px 0 18px;
     }
     .aip-tabs {
@@ -103,23 +77,23 @@
     .aip-tab {
       padding: 6px 20px;
       border-radius: 999px;
-      border: 1.5px solid #e5e7eb;
-      background: #f9fafb;
-      color: #374151;
+      border: 1.5px solid #e2e8f0;
+      background: #f8fafc;
+      color: #334155;
       font-size: 0.85rem;
       cursor: pointer;
       font-weight: 600;
       transition: all .15s;
     }
     .aip-tab.active {
-      background: #90824B;
-      border-color: #90824B;
+      background: #2563eb;
+      border-color: #2563eb;
       color: #fff;
     }
     #aip-textarea {
       width: 100%;
       min-height: 200px;
-      border: 1.5px solid #d1d5db;
+      border: 1.5px solid #e2e8f0;
       border-radius: 10px;
       padding: 14px;
       font-size: 0.875rem;
@@ -127,12 +101,13 @@
       resize: vertical;
       box-sizing: border-box;
       font-family: inherit;
-      color: #111827;
+      color: #1e293b;
       transition: border-color .15s;
     }
     #aip-textarea:focus {
       outline: none;
-      border-color: #90824B;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
     }
     .aip-footer {
       display: flex;
@@ -144,7 +119,7 @@
     }
     .aip-hint {
       font-size: 0.76rem;
-      color: #9ca3af;
+      color: #94a3b8;
       flex: 1;
     }
     .aip-actions {
@@ -161,7 +136,7 @@
     #aip-status.success { display: inline-block; background: #d1fae5; color: #065f46; }
     #aip-status.error   { display: inline-block; background: #fee2e2; color: #991b1b; }
     #aip-save-btn {
-      background: #90824B;
+      background: #2563eb;
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -171,7 +146,7 @@
       cursor: pointer;
       transition: background .15s;
     }
-    #aip-save-btn:hover:not(:disabled) { background: #0F1729; }
+    #aip-save-btn:hover:not(:disabled) { background: #1d4ed8; }
     #aip-save-btn:disabled { opacity: .5; cursor: not-allowed; }
   `;
   document.head.appendChild(style);
@@ -181,35 +156,27 @@
   var prompts = { en: null, am: null };
   var greetings = { en: null, am: null };
 
-  /* ── Build DOM ── */
+  /* ── Build modal DOM (lazily, on first open) ── */
   function buildUI() {
-    if (document.getElementById('aip-fab')) return;
+    if (document.getElementById('aip-overlay')) return;
 
-    /* Floating Action Button */
-    var fab = document.createElement('button');
-    fab.id = 'aip-fab';
-    fab.innerHTML = '🤖 AI Prompt Settings';
-    fab.addEventListener('click', openModal);
-    document.body.appendChild(fab);
-
-    /* Overlay + Modal */
     var overlay = document.createElement('div');
     overlay.id = 'aip-overlay';
     overlay.innerHTML = `
       <div id="aip-modal">
         <div id="aip-modal-header">
-          <h2>🤖 AI Prompt Editor <span class="aip-badge">gemini-2.0-flash</span></h2>
-          <button id="aip-close-btn" title="Close">✕</button>
+          <h2>AI Prompt Settings <span class="aip-badge">gemini-2.0-flash</span></h2>
+          <button id="aip-close-btn" title="Close">&times;</button>
         </div>
         <div id="aip-modal-body">
-          <p class="aip-sub">Edit what the AI says to visitors. Property listings are automatically appended — just write your instructions.</p>
+          <p class="aip-sub">Edit what the AI assistant says to visitors. Property listings are automatically appended — just write your instructions.</p>
           <div class="aip-tabs">
-            <button class="aip-tab active" data-lang="en">🇬🇧 English</button>
-            <button class="aip-tab" data-lang="am">🇪🇹 Amharic</button>
+            <button class="aip-tab active" data-lang="en">English</button>
+            <button class="aip-tab" data-lang="am">Amharic</button>
           </div>
-          <label for="aip-greeting" style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin:4px 0 6px;">Opening greeting (shown & spoken when the panel opens)</label>
-          <textarea id="aip-greeting" placeholder="e.g. Welcome to Ethio Property! How can I help?" style="width:100%;min-height:64px;border:1.5px solid #d1d5db;border-radius:10px;padding:10px 12px;font-size:0.875rem;line-height:1.5;resize:vertical;box-sizing:border-box;font-family:inherit;color:#111827;margin-bottom:12px;"></textarea>
-          <label for="aip-textarea" style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin:4px 0 6px;">System prompt (instructions for the AI)</label>
+          <label for="aip-greeting" style="display:block;font-size:0.78rem;font-weight:700;color:#334155;margin:4px 0 6px;">Opening greeting (shown &amp; spoken when the panel opens)</label>
+          <textarea id="aip-greeting" placeholder="e.g. Welcome to Ethio Property! How can I help?" style="width:100%;min-height:64px;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-size:0.875rem;line-height:1.5;resize:vertical;box-sizing:border-box;font-family:inherit;color:#1e293b;margin-bottom:12px;"></textarea>
+          <label for="aip-textarea" style="display:block;font-size:0.78rem;font-weight:700;color:#334155;margin:4px 0 6px;">System prompt (instructions for the AI)</label>
           <textarea id="aip-textarea" placeholder="Loading prompt…"></textarea>
           <div class="aip-footer">
             <span class="aip-hint">Changes apply immediately to all new conversations.</span>
@@ -226,7 +193,6 @@
     });
     document.body.appendChild(overlay);
 
-    /* Wire up */
     document.getElementById('aip-close-btn').addEventListener('click', closeModal);
     document.getElementById('aip-save-btn').addEventListener('click', savePrompt);
     overlay.querySelectorAll('.aip-tab').forEach(function (tab) {
@@ -239,17 +205,16 @@
       });
     });
 
-    /* ESC key */
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') closeModal();
     });
   }
 
   function openModal() {
+    buildUI();
     var overlay = document.getElementById('aip-overlay');
     if (!overlay) return;
     overlay.classList.add('aip-open');
-    /* Reset to English tab */
     currentLang = 'en';
     overlay.querySelectorAll('.aip-tab').forEach(function (t) {
       t.classList.toggle('active', t.dataset.lang === 'en');
@@ -263,12 +228,7 @@
     if (overlay) overlay.classList.remove('aip-open');
   }
 
-  window.ethioPropertyOpenAIPrompt = function () {
-    if (!document.getElementById('aip-overlay')) {
-      try { buildUI(); } catch (e) {}
-    }
-    openModal();
-  };
+  window.ethioPropertyOpenAIPrompt = openModal;
 
   /* ── API helpers ── */
   function fetchPrompt(lang) {
@@ -346,35 +306,58 @@
       });
   }
 
-  /* ── Show/hide FAB based on route ── */
-  function updateFabVisibility() {
-    var fab = document.getElementById('aip-fab');
-    if (!fab) return;
-    fab.classList.toggle('visible', isAdminRoute());
-    if (!isAdminRoute()) closeModal();
+  /* ── Add sidebar menu item to admin dashboard (same pattern as
+     admin-subscribers-patch.js: locate the "View All Inquiries" button
+     and append a sibling into its container). ── */
+  function addSidebarButton() {
+    if (!/^\/admin/i.test(location.pathname)) return;
+    if (document.getElementById('aip-sidebar-btn')) return;
+
+    var allEls = Array.from(document.querySelectorAll('button, a'));
+    var inquiriesBtn = allEls.find(function (b) { return b.textContent.trim() === 'View All Inquiries'; });
+    if (!inquiriesBtn) return;
+
+    var container = inquiriesBtn.closest('.space-y-2') || inquiriesBtn.closest('div') || inquiriesBtn.parentElement;
+    if (!container) return;
+
+    var btn = document.createElement('button');
+    btn.id = 'aip-sidebar-btn';
+    btn.type = 'button';
+    btn.className = inquiriesBtn.className;
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>AI Prompt Settings';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      openModal();
+    });
+
+    container.appendChild(btn);
   }
 
-  /* ── Init ── */
-  function init() {
-    buildUI();
-    updateFabVisibility();
+  /* ── Route/DOM watch (mirrors admin-subscribers-patch.js) ── */
+  function handleRoute() {
+    if (/^\/admin/i.test(location.pathname)) addSidebarButton();
+  }
 
-    /* Intercept React Router navigation */
-    var _push = history.pushState.bind(history);
-    history.pushState = function () {
-      _push.apply(history, arguments);
-      setTimeout(updateFabVisibility, 150);
-    };
-    window.addEventListener('popstate', function () { setTimeout(updateFabVisibility, 150); });
-
-    /* MutationObserver — safely watch for route changes in the DOM */
-    var mo = new MutationObserver(function () { updateFabVisibility(); });
-    mo.observe(document.body, { childList: true, subtree: false });
+  var timer;
+  function schedule() {
+    clearTimeout(timer);
+    timer = setTimeout(handleRoute, 250);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', schedule, { once: true });
   } else {
-    init();
+    schedule();
   }
+
+  new MutationObserver(function (mutations) {
+    if (mutations.some(function (m) { return m.addedNodes.length > 0; })) schedule();
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
+  var _push = history.pushState;
+  history.pushState = function () { _push.apply(this, arguments); schedule(); };
+  window.addEventListener('popstate', schedule);
+
+  setTimeout(schedule, 600);
+  setTimeout(schedule, 1500);
 })();

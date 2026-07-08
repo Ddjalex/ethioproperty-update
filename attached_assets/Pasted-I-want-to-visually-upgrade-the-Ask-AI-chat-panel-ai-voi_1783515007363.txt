@@ -1,0 +1,19 @@
+I want to visually upgrade the Ask AI chat panel (ai-voice-assistant-patch.js) to feel more like a professional AI conversation tool (similar to Intercom, ChatGPT, or Claude's chat UI). Please enhance the existing panel — don't rebuild the underlying chat logic/API calls, just improve the UI/UX:
+
+1. MESSAGE BUBBLES — user messages and AI messages should be visually distinct: different background colors/alignment (e.g. user messages right-aligned with the accent color, AI messages left-aligned with a neutral/white background), rounded corners, subtle shadow, proper spacing between messages, and timestamps on hover or below each message.
+
+2. TYPING INDICATOR — while waiting for the Gemini response, show an animated "..." or three-dot pulsing indicator in an AI message bubble, not just a blank wait.
+
+3. SMOOTH ANIMATIONS — messages should fade/slide in when they appear, not pop in abruptly. The panel open/close should have a smooth transition too.
+
+4. AVATAR/ICON — small consistent icon or logo next to AI messages (reuse the house icon already in the welcome screen) so it reads as a coherent "assistant" identity throughout the conversation, not just on the welcome screen.
+
+5. INPUT AREA — a clean, modern text input fixed at the bottom with a send button (icon-based, not just text "Send"), and ideally a subtle auto-grow behavior if the user types a long message.
+
+6. SUGGESTED QUICK-REPLIES — after the AI responds, optionally show 2-3 short suggested follow-up buttons (e.g. "Show me apartments", "What's the price range?") similar to what's already there on the welcome screen ("I have a question" / "Tell me more"), so the conversation feels guided.
+
+7. SCROLL BEHAVIOR — auto-scroll to the latest message as new ones arrive, with a smooth (not jumpy) scroll animation.
+
+8. Keep the existing language selection (English/Amharic), the gradient header, "Powered by Gemini AI" footer, and Ethio Property branding exactly as they are — this is a visual polish pass on the conversation view, not a redesign of the whole widget.
+
+Show me a screenshot-style description of what changed once done, and I'll test it live.
