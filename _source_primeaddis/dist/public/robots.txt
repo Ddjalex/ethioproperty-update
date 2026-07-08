@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Allow all public pages
+Allow: /properties
+Allow: /properties/
+Allow: /contact
+Allow: /about
+Allow: /blog
+
+# Block admin areas, authentication, and API endpoints
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api
+Disallow: /api/
+Disallow: /auth
+Disallow: /auth/
+
+# Sitemap location (dynamic — always up to date with all property listings)
+Sitemap: https://primeaddiset.com/sitemap.xml

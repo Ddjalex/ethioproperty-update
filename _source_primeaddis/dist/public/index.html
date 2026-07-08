@@ -1,0 +1,736 @@
+
+      <!DOCTYPE html>
+<html lang="en">
+  <head>
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5643140526529581"
+     crossorigin="anonymous"></script>
+      <meta name="google-site-verification" content="slanjEumDBO7GYgnV5BtAk5WFMLpYTchkefDNACKyXI" />
+    <style data-vite-theme="" data-inject-first="">:root {
+      --background: 0 0% 100%;
+--foreground: 20 14.3% 4.1%;
+--muted: 60 4.8% 95.9%;
+--muted-foreground: 25 5.3% 44.7%;
+--popover: 0 0% 100%;
+--popover-foreground: 20 14.3% 4.1%;
+--card: 0 0% 100%;
+--card-foreground: 20 14.3% 4.1%;
+--border: 20 5.9% 90%;
+--input: 20 5.9% 90%;
+--primary: 222 47% 11%;
+--primary-foreground: 221 8% 97%;
+--secondary: 60 4.8% 95.9%;
+--secondary-foreground: 24 9.8% 10%;
+--accent: 60 4.8% 95.9%;
+--accent-foreground: 24 9.8% 10%;
+--destructive: 0 84.2% 60.2%;
+--destructive-foreground: 60 9.1% 97.8%;
+--ring: 20 14.3% 4.1%;
+--radius: 0.5rem;
+  }
+  .dark {
+      --background: 240 10% 3.9%;
+--foreground: 0 0% 98%;
+--muted: 240 3.7% 15.9%;
+--muted-foreground: 240 5% 64.9%;
+--popover: 240 10% 3.9%;
+--popover-foreground: 0 0% 98%;
+--card: 240 10% 3.9%;
+--card-foreground: 0 0% 98%;
+--border: 240 3.7% 15.9%;
+--input: 240 3.7% 15.9%;
+--primary: 222 47% 11%;
+--primary-foreground: 221 8% 97%;
+--secondary: 240 3.7% 15.9%;
+--secondary-foreground: 0 0% 98%;
+--accent: 240 3.7% 15.9%;
+--accent-foreground: 0 0% 98%;
+--destructive: 0 62.8% 30.6%;
+--destructive-foreground: 0 0% 98%;
+--ring: 240 4.9% 83.9%;
+--radius: 0.5rem;
+  }</style>
+  <script>
+    /* Runs BEFORE React mounts — injects auth CSS immediately when on auth page */
+    (function() {
+      function isAuth() {
+        var p = window.location.pathname;
+        return p === '/auth' || p === '/login' || p === '/register';
+      }
+      function inject() {
+        if (!isAuth() || document.getElementById('pa-auth-css')) return;
+        var s = document.createElement('style');
+        s.id = 'pa-auth-css';
+        s.textContent =
+          'html{height:auto!important;overflow-y:auto!important}' +
+          'body{height:auto!important;min-height:100%!important;overflow-y:auto!important}' +
+          '#root{height:auto!important;min-height:100%!important;overflow:visible!important}' +
+          /* Target the exact Tailwind class used on the auth card */
+          'div[class~="overflow-hidden"]{overflow:visible!important}' +
+          '.min-h-screen{height:auto!important}';
+        document.head.appendChild(s);
+      }
+      function remove() {
+        var s = document.getElementById('pa-auth-css');
+        if (s) s.parentNode.removeChild(s);
+      }
+      inject();
+      var last = location.pathname;
+      setInterval(function() {
+        if (location.pathname !== last) {
+          last = location.pathname;
+          isAuth() ? inject() : remove();
+        }
+      }, 300);
+    })();
+  </script>
+
+    <meta charset="UTF-8" />
+    <meta name="msvalidate.01" content="7191BB52D5FE950E1C497EBACAE98606" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title><!--SSR_TITLE-->Real Estate in Addis Ababa Ethiopia | Buy &amp; Rent Property – Prime Addis<!--/SSR_TITLE--></title>
+    <meta name="description" content="<!--SSR_DESC-->Ethiopia's first real estate platform with 3D &amp; VR property tours. Buy, sell or rent homes, apartments and villas in Addis Ababa and across Ethiopia.<!--/SSR_DESC-->" />
+    <meta name="keywords" content="real estate Ethiopia, property Addis Ababa, homes for sale Ethiopia, apartments Addis Ababa, commercial property Ethiopia, Ethiopian real estate, property listings Ethiopia, Bole properties, Yeka real estate, Lideta homes" />
+    <meta name="author" content="Prime Addis" />
+    <meta name="geo.region" content="ET" />
+    <meta name="geo.placename" content="Addis Ababa" />
+    <meta name="geo.position" content="9.0084;38.7675" />
+    <meta name="ICBM" content="9.0084, 38.7675" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="<!--SSR_URL-->https://primeaddiset.com/<!--/SSR_URL-->" />
+    <meta property="og:title" content="<!--SSR_TITLE-->Real Estate in Addis Ababa Ethiopia | Buy &amp; Rent Property – Prime Addis<!--/SSR_TITLE-->" />
+    <meta property="og:description" content="<!--SSR_DESC-->Ethiopia's first real estate platform with 3D &amp; VR property tours. Buy, sell or rent homes, apartments and villas in Addis Ababa and across Ethiopia.<!--/SSR_DESC-->" />
+    <meta property="og:image" content="/assets/prime-addis-logo.png" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="<!--SSR_URL-->https://primeaddiset.com/<!--/SSR_URL-->" />
+    <meta property="twitter:title" content="<!--SSR_TITLE-->Real Estate in Addis Ababa Ethiopia | Buy &amp; Rent Property – Prime Addis<!--/SSR_TITLE-->" />
+    <meta property="twitter:description" content="<!--SSR_DESC-->Ethiopia's first real estate platform with 3D &amp; VR property tours. Buy, sell or rent homes, apartments and villas in Addis Ababa and across Ethiopia.<!--/SSR_DESC-->" />
+    <meta property="twitter:image" content="/assets/prime-addis-logo.png" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/prime-addis-favicon.png?v=20" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/prime-addis-favicon.png?v=20" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/prime-addis-favicon.png?v=20" />
+    <link rel="shortcut icon" type="image/png" href="/assets/prime-addis-favicon.png?v=20" />
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1B2A4A" />
+    <meta name="application-name" content="Prime Addis" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Prime Addis" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="msapplication-TileColor" content="#1B2A4A" />
+    <meta name="msapplication-TileImage" content="/assets/pwa-icon-192.png" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="<!--SSR_CANONICAL-->https://primeaddiset.com/<!--/SSR_CANONICAL-->" />
+    <script type="module" crossorigin src="/assets/index-CfYobwUw.js"></script>
+    <script type="module" src="/assets/admin-amenities-patch.js?v=3"></script>
+    <script type="text/javascript" src="/assets/admin-currency-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/public-video-currency-patch.js?v=10"></script>
+    <script type="text/javascript" src="/assets/contact-action-buttons-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/floating-buttons-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/vr-tour-patch.js?v=2"></script>
+    <script type="text/javascript" src="/assets/rent-status-patch.js?v=2"></script>
+    <script type="text/javascript" src="/assets/compare-card-patch.js?v=6"></script>
+    <script type="text/javascript" src="/assets/property-location-fix-patch.js?v=7"></script>
+    <script type="text/javascript" src="/assets/dynamic-contact-info-patch.js?v=6"></script>
+    <script type="text/javascript" src="/assets/admin-visit-requests-patch.js?v=3"></script>
+    <script type="text/javascript" src="/assets/admin-subscribers-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/admin-property-subcity-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/admin-dashboard-analytics-patch.js?v=15"></script>
+    <script type="text/javascript" src="/assets/subcities-map-patch.js?v=18"></script>
+    <script type="text/javascript" src="/assets/navbar-auth-patch.js?v=15"></script>
+    <script type="text/javascript" src="/assets/visitor-subscribe-patch.js?v=4"></script>
+    <script type="text/javascript" src="/assets/footer-social-patch.js?v=5"></script>
+    <script type="text/javascript" src="/assets/contact-social-icons-patch.js?v=3"></script>
+    <script type="text/javascript" src="/assets/pwa-install-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/pwa-notifications-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/sw-register.js?v=3"></script>
+    <script type="text/javascript" src="/assets/admin-tiktok-settings-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/partners-slider-patch.js?v=6"></script>
+    <script type="text/javascript" src="/assets/admin-content-patch.js?v=4"></script>
+    <script type="text/javascript" src="/assets/nav-pages-patch.js?v=4"></script>
+    <script type="text/javascript" src="/assets/hero-admin-fix-patch.js?v=4"></script>
+    <script type="text/javascript" src="/assets/hero-mobile-patch.js?v=7"></script>
+    <script type="text/javascript" src="/assets/home-filter-buttons-patch.js?v=6"></script>
+    <script type="text/javascript" src="/assets/hero-h1-seo-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/scroll-animations-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/hide-clock-tiktok-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/hide-search-bar-patch.js?v=2"></script>
+    <script type="text/javascript" src="/assets/login-page-patch.js?v=11"></script>
+    <script type="text/javascript" src="/assets/ai-voice-assistant-patch.js?v=23"></script>
+    <script type="text/javascript" src="/assets/admin-ai-prompt-patch.js?v=6"></script>
+    <script type="text/javascript" src="/assets/multi-image-patch.js?v=3"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-p-z5AN2h.css">
+      <!--SSR_JSONLD--><!--/SSR_JSONLD-->
+    <!--SSR_OG_IMAGE_BLOCK--><!--/SSR_OG_IMAGE_BLOCK-->
+</head>
+  <body>
+    <div id="root"></div>
+    <!-- This script injects a replit badge into the page, please feel free to remove this line -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-badge-v3.js"></script>
+
+  <!--Start of Tawk.to Script-->
+<script type="text/javascript">
+var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+(function(){
+if(location.hostname==="localhost")return;
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/69de02053fc0c01c325df89b/1jm5jfps1';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();
+</script>
+<!--End of Tawk.to Script-->
+
+    <script>
+    (function() {
+      /* Hide subcity card description text, keep icon + name */
+      function hideSubcityDescriptions() {
+        var headings = document.querySelectorAll('h2, h3');
+        for (var i = 0; i < headings.length; i++) {
+          if (/Explore Addis Ababa Subcit/i.test(headings[i].textContent)) {
+            var heading = headings[i];
+            /* Walk up to the section wrapper */
+            var section = heading.closest('section') || heading.parentElement;
+            while (section && section !== document.body) {
+              /* The subtitle sits directly inside the section, not inside a card.
+                 Cards are deeper descendants — find p tags that are NOT direct
+                 children of the section or its immediate wrapper. */
+              var allP = section.querySelectorAll('p');
+              var found = false;
+              allP.forEach(function(p) {
+                /* Skip the section subtitle (direct grandchild of section) */
+                if (p.parentElement === section || p.parentElement === heading.parentElement) return;
+                var txt = p.textContent.trim();
+                if (txt.length > 15) {
+                  p.style.display = 'none';
+                  found = true;
+                }
+              });
+              if (found) break;
+              section = section.parentElement;
+            }
+            break;
+          }
+        }
+      }
+      hideSubcityDescriptions();
+      var obs2 = new MutationObserver(function() { hideSubcityDescriptions(); });
+      obs2.observe(document.body, { childList: true, subtree: true });
+    })();
+    </script>
+
+    <script>
+    (function() {
+      function removeWhyChoose() {
+        var all = document.querySelectorAll('section, div');
+        for (var i = 0; i < all.length; i++) {
+          var el = all[i];
+          var h = el.querySelector('h2, h3');
+          if (h && /Why Choose/i.test(h.textContent)) {
+            el.style.display = 'none';
+            return true;
+          }
+        }
+        return false;
+      }
+      if (!removeWhyChoose()) {
+        var obs = new MutationObserver(function() {
+          if (removeWhyChoose()) obs.disconnect();
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+      }
+    })();
+    </script>
+
+
+    <script>
+    (function () {
+      // Fix: embedded video iframe can overlap the tab bar on mobile, blocking clicks on Description/Features/Location.
+      // This patch raises the tab bar z-index and (only during a tab touch) briefly disables iframe pointer-events.
+      const style = document.createElement('style');
+      style.textContent = `
+        [role="tablist"], .tabs, .tablist, .property-tabs, .property-detail-tabs {
+          position: relative !important;
+          z-index: 9999 !important;
+          pointer-events: auto !important;
+        }
+        /* keep video container below the tabs */
+        .video-embed, .property-video, .video-panel, .video-tab {
+          position: relative !important;
+          z-index: 1 !important;
+          overflow: hidden !important;
+        }
+        iframe { max-width: 100% !important; }
+      `;
+      document.head.appendChild(style);
+
+      function boostTabBar() {
+        const nodes = Array.from(document.querySelectorAll('[role="tablist"], .tabs, .tablist, .property-tabs, .property-detail-tabs'));
+        for (const el of nodes) {
+          const t = (el.innerText || '').trim();
+          if (t && /Description/i.test(t) && /Features/i.test(t) && /Location/i.test(t)) {
+            el.style.position = 'relative';
+            el.style.zIndex = '9999';
+            // Ensure it's clickable even if something overlaps
+            el.style.pointerEvents = 'auto';
+            // Add background so text remains readable if it becomes sticky in some layouts
+            if (!el.style.background) el.style.background = 'white';
+          }
+        }
+      }
+
+      boostTabBar();
+      new MutationObserver(boostTabBar).observe(document.body, { childList: true, subtree: true });
+
+      // On mobile, if the iframe is slightly overlapping, taps may go to the iframe.
+      // When the user touches the tab bar area, temporarily disable iframe pointer-events so the tab click works.
+      document.addEventListener('touchstart', function (e) {
+        const tabArea = e.target && e.target.closest && e.target.closest('[role="tablist"], .tabs, .tablist, .property-tabs, .property-detail-tabs');
+        if (!tabArea) return;
+
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(f => {
+          f.dataset.__prevPointerEvents = f.style.pointerEvents || '';
+          f.style.pointerEvents = 'none';
+        });
+
+        window.setTimeout(() => {
+          document.querySelectorAll('iframe').forEach(f => {
+            f.style.pointerEvents = f.dataset.__prevPointerEvents || '';
+            delete f.dataset.__prevPointerEvents;
+          });
+        }, 450);
+      }, { capture: true, passive: true });
+    })();
+    </script>
+
+    <script>
+    (function() {
+      function isAuthPage() {
+        var p = window.location.pathname;
+        return p === '/auth' || p === '/login' || p === '/register';
+      }
+
+      function applyBodyFixes() {
+        var auth = isAuthPage();
+
+        /* Hide footer on auth pages */
+        document.querySelectorAll('footer, [class*="footer"]').forEach(function(el) {
+          el.style.setProperty('display', auth ? 'none' : '', 'important');
+        });
+
+        /* Desktop only: hide the empty left decorative panel & center the form */
+        if (auth && window.innerWidth >= 768) {
+          var pwInput = document.querySelector('input[type="password"]');
+          if (pwInput) {
+            var node = pwInput.parentElement;
+            while (node && node !== document.body) {
+              var parent = node.parentElement;
+              if (!parent) break;
+              var pcs = window.getComputedStyle(parent);
+              var kids = Array.from(parent.children);
+              if (pcs.display === 'flex' && pcs.flexDirection !== 'column' && kids.length === 2) {
+                var sibling = kids[0] === node ? kids[1] : kids[0];
+                if (!sibling.querySelector('input')) {
+                  sibling.style.setProperty('display', 'none', 'important');
+                  parent.style.setProperty('justify-content', 'center', 'important');
+                  node.style.setProperty('width', '100%', 'important');
+                  node.style.setProperty('max-width', '480px', 'important');
+                }
+                break;
+              }
+              node = node.parentElement;
+            }
+          }
+        }
+      }
+
+      [0, 200, 600, 1200].forEach(function(ms) { setTimeout(applyBodyFixes, ms); });
+      window.addEventListener('resize', applyBodyFixes);
+      var lastPath = location.pathname;
+      setInterval(function() {
+        if (location.pathname !== lastPath) {
+          lastPath = location.pathname;
+          [0, 200, 600].forEach(function(ms) { setTimeout(applyBodyFixes, ms); });
+        }
+      }, 300);
+    })();
+    </script>
+
+</body>
+</html>
+
+    <style data-vite-theme="" data-inject-first="">:root {
+      --background: 0 0% 100%;
+--foreground: 20 14.3% 4.1%;
+--muted: 60 4.8% 95.9%;
+--muted-foreground: 25 5.3% 44.7%;
+--popover: 0 0% 100%;
+--popover-foreground: 20 14.3% 4.1%;
+--card: 0 0% 100%;
+--card-foreground: 20 14.3% 4.1%;
+--border: 20 5.9% 90%;
+--input: 20 5.9% 90%;
+--primary: 222 47% 11%;
+--primary-foreground: 221 8% 97%;
+--secondary: 60 4.8% 95.9%;
+--secondary-foreground: 24 9.8% 10%;
+--accent: 60 4.8% 95.9%;
+--accent-foreground: 24 9.8% 10%;
+--destructive: 0 84.2% 60.2%;
+--destructive-foreground: 60 9.1% 97.8%;
+--ring: 20 14.3% 4.1%;
+--radius: 0.5rem;
+  }
+  .dark {
+      --background: 240 10% 3.9%;
+--foreground: 0 0% 98%;
+--muted: 240 3.7% 15.9%;
+--muted-foreground: 240 5% 64.9%;
+--popover: 240 10% 3.9%;
+--popover-foreground: 0 0% 98%;
+--card: 240 10% 3.9%;
+--card-foreground: 0 0% 98%;
+--border: 240 3.7% 15.9%;
+--input: 240 3.7% 15.9%;
+--primary: 222 47% 11%;
+--primary-foreground: 221 8% 97%;
+--secondary: 240 3.7% 15.9%;
+--secondary-foreground: 0 0% 98%;
+--accent: 240 3.7% 15.9%;
+--accent-foreground: 0 0% 98%;
+--destructive: 0 62.8% 30.6%;
+--destructive-foreground: 0 0% 98%;
+--ring: 240 4.9% 83.9%;
+--radius: 0.5rem;
+  }</style>
+  <script>
+    /* Runs BEFORE React mounts — injects auth CSS immediately when on auth page */
+    (function() {
+      function isAuth() {
+        var p = window.location.pathname;
+        return p === '/auth' || p === '/login' || p === '/register';
+      }
+      function inject() {
+        if (!isAuth() || document.getElementById('pa-auth-css')) return;
+        var s = document.createElement('style');
+        s.id = 'pa-auth-css';
+        s.textContent =
+          'html{height:auto!important;overflow-y:auto!important}' +
+          'body{height:auto!important;min-height:100%!important;overflow-y:auto!important}' +
+          '#root{height:auto!important;min-height:100%!important;overflow:visible!important}' +
+          /* Target the exact Tailwind class used on the auth card */
+          'div[class~="overflow-hidden"]{overflow:visible!important}' +
+          '.min-h-screen{height:auto!important}';
+        document.head.appendChild(s);
+      }
+      function remove() {
+        var s = document.getElementById('pa-auth-css');
+        if (s) s.parentNode.removeChild(s);
+      }
+      inject();
+      var last = location.pathname;
+      setInterval(function() {
+        if (location.pathname !== last) {
+          last = location.pathname;
+          isAuth() ? inject() : remove();
+        }
+      }, 300);
+    })();
+  </script>
+
+    <meta charset="UTF-8" />
+    <meta name="msvalidate.01" content="7191BB52D5FE950E1C497EBACAE98606" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title><!--SSR_TITLE-->Real Estate in Addis Ababa Ethiopia | Buy &amp; Rent Property – Prime Addis<!--/SSR_TITLE--></title>
+    <meta name="description" content="<!--SSR_DESC-->Ethiopia's first real estate platform with 3D &amp; VR property tours. Buy, sell or rent homes, apartments and villas in Addis Ababa and across Ethiopia.<!--/SSR_DESC-->" />
+    <meta name="keywords" content="real estate Ethiopia, property Addis Ababa, homes for sale Ethiopia, apartments Addis Ababa, commercial property Ethiopia, Ethiopian real estate, property listings Ethiopia, Bole properties, Yeka real estate, Lideta homes" />
+    <meta name="author" content="Prime Addis" />
+    <meta name="geo.region" content="ET" />
+    <meta name="geo.placename" content="Addis Ababa" />
+    <meta name="geo.position" content="9.0084;38.7675" />
+    <meta name="ICBM" content="9.0084, 38.7675" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="<!--SSR_URL-->https://primeaddiset.com/<!--/SSR_URL-->" />
+    <meta property="og:title" content="<!--SSR_TITLE-->Real Estate in Addis Ababa Ethiopia | Buy &amp; Rent Property – Prime Addis<!--/SSR_TITLE-->" />
+    <meta property="og:description" content="<!--SSR_DESC-->Ethiopia's first real estate platform with 3D &amp; VR property tours. Buy, sell or rent homes, apartments and villas in Addis Ababa and across Ethiopia.<!--/SSR_DESC-->" />
+    <meta property="og:image" content="/assets/prime-addis-logo.png" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="<!--SSR_URL-->https://primeaddiset.com/<!--/SSR_URL-->" />
+    <meta property="twitter:title" content="<!--SSR_TITLE-->Real Estate in Addis Ababa Ethiopia | Buy &amp; Rent Property – Prime Addis<!--/SSR_TITLE-->" />
+    <meta property="twitter:description" content="<!--SSR_DESC-->Ethiopia's first real estate platform with 3D &amp; VR property tours. Buy, sell or rent homes, apartments and villas in Addis Ababa and across Ethiopia.<!--/SSR_DESC-->" />
+    <meta property="twitter:image" content="/assets/prime-addis-logo.png" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/prime-addis-favicon.png?v=20" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/prime-addis-favicon.png?v=20" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/prime-addis-favicon.png?v=20" />
+    <link rel="shortcut icon" type="image/png" href="/assets/prime-addis-favicon.png?v=20" />
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1B2A4A" />
+    <meta name="application-name" content="Prime Addis" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Prime Addis" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="msapplication-TileColor" content="#1B2A4A" />
+    <meta name="msapplication-TileImage" content="/assets/pwa-icon-192.png" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="<!--SSR_CANONICAL-->https://primeaddiset.com/<!--/SSR_CANONICAL-->" />
+    <script type="module" crossorigin src="/assets/index-CfYobwUw.js"></script>
+    <script type="module" src="/assets/admin-amenities-patch.js?v=3"></script>
+    <script type="text/javascript" src="/assets/admin-currency-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/public-video-currency-patch.js?v=10"></script>
+    <script type="text/javascript" src="/assets/contact-action-buttons-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/floating-buttons-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/vr-tour-patch.js?v=2"></script>
+    <script type="text/javascript" src="/assets/rent-status-patch.js?v=2"></script>
+    <script type="text/javascript" src="/assets/compare-card-patch.js?v=6"></script>
+    <script type="text/javascript" src="/assets/property-location-fix-patch.js?v=7"></script>
+    <script type="text/javascript" src="/assets/dynamic-contact-info-patch.js?v=6"></script>
+    <script type="text/javascript" src="/assets/admin-visit-requests-patch.js?v=3"></script>
+    <script type="text/javascript" src="/assets/admin-subscribers-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/admin-property-subcity-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/admin-dashboard-analytics-patch.js?v=15"></script>
+    <script type="text/javascript" src="/assets/subcities-map-patch.js?v=18"></script>
+    <script type="text/javascript" src="/assets/navbar-auth-patch.js?v=15"></script>
+    <script type="text/javascript" src="/assets/visitor-subscribe-patch.js?v=4"></script>
+    <script type="text/javascript" src="/assets/footer-social-patch.js?v=5"></script>
+    <script type="text/javascript" src="/assets/contact-social-icons-patch.js?v=3"></script>
+    <script type="text/javascript" src="/assets/pwa-install-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/pwa-notifications-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/sw-register.js?v=3"></script>
+    <script type="text/javascript" src="/assets/admin-tiktok-settings-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/partners-slider-patch.js?v=6"></script>
+    <script type="text/javascript" src="/assets/admin-content-patch.js?v=4"></script>
+    <script type="text/javascript" src="/assets/nav-pages-patch.js?v=4"></script>
+    <script type="text/javascript" src="/assets/hero-admin-fix-patch.js?v=4"></script>
+    <script type="text/javascript" src="/assets/hero-mobile-patch.js?v=7"></script>
+    <script type="text/javascript" src="/assets/home-filter-buttons-patch.js?v=6"></script>
+    <script type="text/javascript" src="/assets/hero-h1-seo-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/scroll-animations-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/hide-clock-tiktok-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/hide-search-bar-patch.js?v=2"></script>
+    <script type="text/javascript" src="/assets/login-page-patch.js?v=11"></script>
+    <script type="text/javascript" src="/assets/ai-voice-assistant-patch.js?v=23"></script>
+    <script type="text/javascript" src="/assets/admin-ai-prompt-patch.js?v=6"></script>
+    <script type="text/javascript" src="/assets/multi-image-patch.js?v=3"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-p-z5AN2h.css">
+      <!--SSR_JSONLD--><!--/SSR_JSONLD-->
+    <!--SSR_OG_IMAGE_BLOCK--><!--/SSR_OG_IMAGE_BLOCK-->
+</head>
+  <body>
+    <div id="root"></div>
+    <!-- This script injects a replit badge into the page, please feel free to remove this line -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-badge-v3.js"></script>
+
+  <!--Start of Tawk.to Script-->
+<script type="text/javascript">
+var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+(function(){
+if(location.hostname==="localhost")return;
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/69de02053fc0c01c325df89b/1jm5jfps1';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();
+</script>
+<!--End of Tawk.to Script-->
+
+    <script>
+    (function() {
+      /* Hide subcity card description text, keep icon + name */
+      function hideSubcityDescriptions() {
+        var headings = document.querySelectorAll('h2, h3');
+        for (var i = 0; i < headings.length; i++) {
+          if (/Explore Addis Ababa Subcit/i.test(headings[i].textContent)) {
+            var heading = headings[i];
+            /* Walk up to the section wrapper */
+            var section = heading.closest('section') || heading.parentElement;
+            while (section && section !== document.body) {
+              /* The subtitle sits directly inside the section, not inside a card.
+                 Cards are deeper descendants — find p tags that are NOT direct
+                 children of the section or its immediate wrapper. */
+              var allP = section.querySelectorAll('p');
+              var found = false;
+              allP.forEach(function(p) {
+                /* Skip the section subtitle (direct grandchild of section) */
+                if (p.parentElement === section || p.parentElement === heading.parentElement) return;
+                var txt = p.textContent.trim();
+                if (txt.length > 15) {
+                  p.style.display = 'none';
+                  found = true;
+                }
+              });
+              if (found) break;
+              section = section.parentElement;
+            }
+            break;
+          }
+        }
+      }
+      hideSubcityDescriptions();
+      var obs2 = new MutationObserver(function() { hideSubcityDescriptions(); });
+      obs2.observe(document.body, { childList: true, subtree: true });
+    })();
+    </script>
+
+    <script>
+    (function() {
+      function removeWhyChoose() {
+        var all = document.querySelectorAll('section, div');
+        for (var i = 0; i < all.length; i++) {
+          var el = all[i];
+          var h = el.querySelector('h2, h3');
+          if (h && /Why Choose/i.test(h.textContent)) {
+            el.style.display = 'none';
+            return true;
+          }
+        }
+        return false;
+      }
+      if (!removeWhyChoose()) {
+        var obs = new MutationObserver(function() {
+          if (removeWhyChoose()) obs.disconnect();
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+      }
+    })();
+    </script>
+
+
+    <script>
+    (function () {
+      // Fix: embedded video iframe can overlap the tab bar on mobile, blocking clicks on Description/Features/Location.
+      // This patch raises the tab bar z-index and (only during a tab touch) briefly disables iframe pointer-events.
+      const style = document.createElement('style');
+      style.textContent = `
+        [role="tablist"], .tabs, .tablist, .property-tabs, .property-detail-tabs {
+          position: relative !important;
+          z-index: 9999 !important;
+          pointer-events: auto !important;
+        }
+        /* keep video container below the tabs */
+        .video-embed, .property-video, .video-panel, .video-tab {
+          position: relative !important;
+          z-index: 1 !important;
+          overflow: hidden !important;
+        }
+        iframe { max-width: 100% !important; }
+      `;
+      document.head.appendChild(style);
+
+      function boostTabBar() {
+        const nodes = Array.from(document.querySelectorAll('[role="tablist"], .tabs, .tablist, .property-tabs, .property-detail-tabs'));
+        for (const el of nodes) {
+          const t = (el.innerText || '').trim();
+          if (t && /Description/i.test(t) && /Features/i.test(t) && /Location/i.test(t)) {
+            el.style.position = 'relative';
+            el.style.zIndex = '9999';
+            // Ensure it's clickable even if something overlaps
+            el.style.pointerEvents = 'auto';
+            // Add background so text remains readable if it becomes sticky in some layouts
+            if (!el.style.background) el.style.background = 'white';
+          }
+        }
+      }
+
+      boostTabBar();
+      new MutationObserver(boostTabBar).observe(document.body, { childList: true, subtree: true });
+
+      // On mobile, if the iframe is slightly overlapping, taps may go to the iframe.
+      // When the user touches the tab bar area, temporarily disable iframe pointer-events so the tab click works.
+      document.addEventListener('touchstart', function (e) {
+        const tabArea = e.target && e.target.closest && e.target.closest('[role="tablist"], .tabs, .tablist, .property-tabs, .property-detail-tabs');
+        if (!tabArea) return;
+
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(f => {
+          f.dataset.__prevPointerEvents = f.style.pointerEvents || '';
+          f.style.pointerEvents = 'none';
+        });
+
+        window.setTimeout(() => {
+          document.querySelectorAll('iframe').forEach(f => {
+            f.style.pointerEvents = f.dataset.__prevPointerEvents || '';
+            delete f.dataset.__prevPointerEvents;
+          });
+        }, 450);
+      }, { capture: true, passive: true });
+    })();
+    </script>
+
+    <script>
+    (function() {
+      function isAuthPage() {
+        var p = window.location.pathname;
+        return p === '/auth' || p === '/login' || p === '/register';
+      }
+
+      function applyBodyFixes() {
+        var auth = isAuthPage();
+
+        /* Hide footer on auth pages */
+        document.querySelectorAll('footer, [class*="footer"]').forEach(function(el) {
+          el.style.setProperty('display', auth ? 'none' : '', 'important');
+        });
+
+        /* Desktop only: hide the empty left decorative panel & center the form */
+        if (auth && window.innerWidth >= 768) {
+          var pwInput = document.querySelector('input[type="password"]');
+          if (pwInput) {
+            var node = pwInput.parentElement;
+            while (node && node !== document.body) {
+              var parent = node.parentElement;
+              if (!parent) break;
+              var pcs = window.getComputedStyle(parent);
+              var kids = Array.from(parent.children);
+              if (pcs.display === 'flex' && pcs.flexDirection !== 'column' && kids.length === 2) {
+                var sibling = kids[0] === node ? kids[1] : kids[0];
+                if (!sibling.querySelector('input')) {
+                  sibling.style.setProperty('display', 'none', 'important');
+                  parent.style.setProperty('justify-content', 'center', 'important');
+                  node.style.setProperty('width', '100%', 'important');
+                  node.style.setProperty('max-width', '480px', 'important');
+                }
+                break;
+              }
+              node = node.parentElement;
+            }
+          }
+        }
+      }
+
+      [0, 200, 600, 1200].forEach(function(ms) { setTimeout(applyBodyFixes, ms); });
+      window.addEventListener('resize', applyBodyFixes);
+      var lastPath = location.pathname;
+      setInterval(function() {
+        if (location.pathname !== lastPath) {
+          lastPath = location.pathname;
+          [0, 200, 600].forEach(function(ms) { setTimeout(applyBodyFixes, ms); });
+        }
+      }, 300);
+    })();
+    </script>
+
+</body>
+</html>
