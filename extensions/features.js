@@ -69,11 +69,12 @@ function pageHead(title, desc, keywords, canonical, extra = '') {
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b}
     a{color:inherit;text-decoration:none}
     img{max-width:100%}
-    .nav{background:#0f172a;padding:0 32px;display:flex;align-items:center;gap:28px;height:64px;position:sticky;top:0;z-index:100}
-    .nav-logo{display:flex;align-items:center;gap:10px;margin-right:auto;color:#fff;font-weight:700;font-size:18px}
-    .nav-logo img{height:38px}
-    .nav a{color:#94a3b8;font-size:14px;font-weight:500;transition:color .2s;white-space:nowrap}
-    .nav a:hover{color:#fff}
+    .nav{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.05);padding:0 32px;display:flex;align-items:center;gap:28px;height:64px;position:sticky;top:0;z-index:100}
+    .nav-logo{display:flex;align-items:center;gap:10px;margin-right:auto}
+    .nav-logo img{height:40px;width:auto}
+    .nav a{color:#334155;font-size:15px;font-weight:500;transition:color .2s;white-space:nowrap}
+    .nav a:hover{color:#0f172a}
+    .nav a.active{color:#0f172a}
     .hero{background:linear-gradient(135deg,#0f172a 60%,#1e3a5f);color:#fff;padding:64px 32px;text-align:center}
     .hero h1{font-size:2.4rem;font-weight:800;margin-bottom:14px;line-height:1.2}
     .hero p{font-size:1.05rem;color:#94a3b8;max-width:560px;margin:0 auto;line-height:1.7}
@@ -111,10 +112,10 @@ function pageHead(title, desc, keywords, canonical, extra = '') {
 </head>
 <body>
 <nav class="nav">
-  <a href="/" class="nav-logo"><img src="/assets/ethioproperty.png" alt="Ethio Property">Ethio Property</a>
+  <a href="/" class="nav-logo"><img src="/assets/ethioproperty.png" alt="Ethio Property"></a>
   <a href="/">Home</a>
   <a href="/properties">Properties</a>
-  <a href="/blog">Blog</a>
+  <a href="/blog" class="${canonical.startsWith('/blog') ? 'active' : ''}">Blog</a>
   <a href="/contact">Contact</a>
 </nav>`;
 }
