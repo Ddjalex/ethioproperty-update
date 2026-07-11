@@ -71,32 +71,6 @@
       box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
     }
 
-    /* ── Navbar button ── */
-    #pa-ai-header-btn {
-      display: inline-flex; align-items: center; gap: 7px;
-      padding: 7px 16px;
-      border-radius: 22px;
-      border: 1.5px solid rgba(99,102,241,0.4);
-      background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1));
-      color: #6366f1;
-      font-size: 14px; font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap; font-family: inherit; line-height: 1;
-    }
-    #pa-ai-header-btn:hover {
-      background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.18));
-      border-color: rgba(99,102,241,0.7);
-      box-shadow: 0 3px 12px rgba(99,102,241,0.25);
-      transform: translateY(-1px);
-    }
-    #pa-ai-header-btn.active {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: #fff; border-color: transparent;
-      box-shadow: 0 4px 14px rgba(99,102,241,0.4);
-    }
-    #pa-ai-header-btn .pa-sparkle { font-size: 14px; }
-
     /* ── Panel ── */
     #pa-ai-panel {
       position: fixed;
@@ -399,36 +373,6 @@
       #pa-ai-panel { width: calc(100vw - 20px); right: 10px; top: 62px; border-radius: 20px; }
     }
 
-    /* ── Mobile pill button ── */
-    #pa-ai-mobile-header-btn {
-      display: none;
-      align-items: center; gap: 5px;
-      padding: 7px 13px; border-radius: 20px;
-      border: 1.5px solid rgba(99,102,241,0.5);
-      background: rgba(255,255,255,0.96);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      color: #6366f1; font-size: 13px; font-weight: 700;
-      cursor: pointer; font-family: inherit; line-height: 1;
-      white-space: nowrap; margin: 0;
-      box-shadow: 0 3px 14px rgba(0,0,0,0.12);
-      transition: all 0.2s;
-    }
-    #pa-ai-mobile-header-btn.active {
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      color: #fff; border-color: transparent;
-    }
-    @media (max-width: 767px) {
-      #pa-ai-mobile-header-btn {
-        display: inline-flex;
-        position: fixed;
-        top: max(14px, env(safe-area-inset-top, 14px));
-        right: 64px; left: auto;
-        z-index: 10000; margin: 0;
-      }
-      #pa-ai-header-btn { display: none !important; }
-    }
-
     /* ── Welcome card ── */
     .pa-welcome-card {
       background: linear-gradient(135deg, #eef2ff, #f5f3ff);
@@ -532,47 +476,10 @@
   var titleEl   = document.getElementById('pa-hdr-title');
   var subEl     = document.getElementById('pa-hdr-sub');
 
-  /* ── Navbar "Ask AI" button ─────────────────── */
-  function createHeaderBtn() {
-    var b = document.createElement('button');
-    b.id = 'pa-ai-header-btn';
-    b.title = t('btnTitle');
-    b.innerHTML = '<span class="pa-sparkle">✦</span> Ask AI';
-    b.addEventListener('click', function (e) {
-      e.stopPropagation();
-      isOpen ? closePanel() : openPanel();
-    });
-    return b;
-  }
-
-  function injectHeaderBtn() {
-    if (document.getElementById('pa-ai-header-btn')) return;
-    var navBar = document.getElementById('pa-nav-bar');
-    if (navBar && navBar.parentElement) {
-      navBar.parentElement.insertBefore(createHeaderBtn(), navBar);
-      return;
-    }
-    var nav = document.querySelector('nav') || document.querySelector('header');
-    if (nav) {
-      var container = nav.querySelector('[class*="flex"][class*="items"]') || nav;
-      container.appendChild(createHeaderBtn());
-    }
-  }
-
-  function injectMobileHeaderBtn() {
-    if (document.getElementById('pa-ai-mobile-header-btn')) return;
-    var b = document.createElement('button');
-    b.id = 'pa-ai-mobile-header-btn';
-    b.title = t('btnTitle');
-    b.innerHTML = '<span>✦</span> Ask AI';
-    b.addEventListener('click', function (e) {
-      e.stopPropagation();
-      isOpen ? closePanel() : openPanel();
-    });
-    document.body.appendChild(b);
-  }
-
   /* ── Sticky nav ─────────────────────────────── */
+  /* Note: the navbar "Ask AI" button (desktop + mobile pill) was removed.
+     The only way to open Ask AI is now the bottom-left avatar launcher from
+     ask-ai-bottom-left-button-patch.js, which calls window.__paAskAI(). */
   var stuckNav = null;
   function pinNav() {
     var candidates = document.querySelectorAll('nav, header');
@@ -596,7 +503,7 @@
     spacer.style.height = h + 'px';
   }
 
-  function injectAll() { injectHeaderBtn(); injectMobileHeaderBtn(); pinNav(); }
+  function injectAll() { pinNav(); }
   injectAll();
   [500, 1500, 3000].forEach(function (d) { setTimeout(injectAll, d); });
   window.addEventListener('resize', injectAll);
@@ -613,7 +520,7 @@
   });
 
   new MutationObserver(function () {
-    if (!document.getElementById('pa-ai-header-btn') || !document.getElementById('pa-ai-mobile-header-btn')) injectAll();
+    injectAll();
   }).observe(document.documentElement, { childList: true, subtree: true });
 
   /* ── Message rendering ──────────────────────── */
@@ -1508,7 +1415,7 @@
   document.addEventListener('click', function (e) {
     if (!isOpen) return;
     if (panel.contains(e.target)) return;
-    if (e.target.closest('#pa-ai-header-btn') || e.target.closest('#pa-ai-mobile-header-btn')) return;
+    if (e.target.closest('#pa-ai-fab-btn')) return;
     closePanel();
   });
 
