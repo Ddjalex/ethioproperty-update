@@ -39,6 +39,8 @@ A real-estate listing site for Addis Ababa, Ethiopia ("EthioProperty" / "Prime A
 - Note: the `NEON_DATABASE_URL` secret also does not carry over on a fresh import/checkout and must be re-entered by the user each time (re-confirmed working July 11, 2026).
 - Known issue: admin password is reset to `admin123` on every boot (see Database section).
 - Known cosmetic issue: `ask-ai-bottom-left-button-patch.js` throws a `Cannot read properties of null (reading 'appendChild')` console error on load; pre-existing, does not affect functionality.
+- Re-imported and re-verified running July 11, 2026: `npm install`, `NEON_DATABASE_URL` re-entered, workflow restarted, homepage confirmed loading 64 properties against the real Neon DB.
+- `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` secrets were added this session. Google OAuth routes are now registered and active (`/auth/google`, `/auth/google/callback`) — confirmed in startup logs.
 
 ## Optional/unused integrations referenced in code
 AWS SES, Gmail SMTP, Brevo, Gemini API — currently not configured; email sending logs to console only when unset.

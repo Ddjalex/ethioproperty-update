@@ -1,0 +1,13 @@
+I want to visually overhaul the Ask AI welcome/language-selection screen to look more professional and match Ethio Property's actual branding, not generic purple. Please update ai-voice-assistant-patch.js:
+
+1. REPLACE THE ICON — Remove the 🏠 emoji currently used in the welcome screen and header avatar. Use the actual Ethio Property logo image (/assets/ethioproperty.png) instead, sized appropriately for both the small header avatar and the larger welcome-screen icon.
+
+2. COLOR SCHEME — Replace the current purple/violet gradient (header bar, "Continue in English/Amharic" links, accents) with Ethio Property's actual brand colors — the same navy (#0F1729) and gold (#90824B) used throughout the rest of the site (check subcities-map-patch.js and visitor-subscribe-patch.js for the exact values already in use, for consistency). The header bar gradient should use these instead of purple.
+
+3. RESIZE THE LANGUAGE BUTTONS — The "GB / English / Continue in English" and "ET / አማርኛ / በአማርኛ ይቀጥሉ" cards are currently way too large (full flag-letter codes, big padding, taking up half the panel height). Shrink them down to a compact pill-button style similar in size/proportions to the existing Buy/Rent toggle (buy-rent-toggle-patch.js) — small, side-by-side, minimal padding. Keep both language options but make them look like a compact toggle, not two large cards.
+
+4. GENERAL POLISH — Clean up spacing so the welcome screen doesn't feel oversized/empty; the panel should feel like a tight, professional widget, not a full illustrated splash screen. Keep "Welcome to Ethio Property AI" and the subtitle text, just tighten the overall layout to match a more compact, professional real-estate-brand tone.
+
+5. Keep "Powered by Gemini AI" footer text and the X (close) button exactly where they are — this is a visual restyle, not a functional change.
+
+Show me a description of the new layout/colors before considering this done, and confirm it doesn't break the language-selection click behavior (still routes to English or Amharic chat correctly).
