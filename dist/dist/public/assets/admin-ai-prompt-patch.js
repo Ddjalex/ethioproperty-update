@@ -302,7 +302,7 @@
         if (e.message === 'SESSION_EXPIRED') {
           showStatus('Session expired — please log in again', 'error');
           setTimeout(function () {
-            window.location.href = '/auth/login?redirect=/admin';
+            window.location.href = '/auth';
           }, 1500);
         } else {
           showStatus('Error: ' + e.message, 'error');
