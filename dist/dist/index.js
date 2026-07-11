@@ -414,29 +414,21 @@ var init_storage = __esm({
           if (filters.status === "For Sale") {
             conditions.push(
               and(
-                eq(properties.status, "Available"),
                 or(
-                  eq(properties.propertyType, "House"),
-                  eq(properties.propertyType, "Apartment"),
-                  eq(properties.propertyType, "Villa"),
-                  eq(properties.propertyType, "Condo"),
-                  eq(properties.propertyType, "Townhouse"),
-                  eq(properties.propertyType, "Land"),
-                  eq(properties.propertyType, "Commercial")
-                )
+                  eq(properties.status, "Available"),
+                  eq(properties.status, "For Sale")
+                ),
+                sql`lower(${properties.propertyType}) IN ('house','apartment','villa','condo','townhouse','land','commercial','apartement building','shop')`
               )
             );
           } else if (filters.status === "For Rent") {
             conditions.push(
               and(
-                eq(properties.status, "Available"),
                 or(
-                  eq(properties.propertyType, "House"),
-                  eq(properties.propertyType, "Apartment"),
-                  eq(properties.propertyType, "Villa"),
-                  eq(properties.propertyType, "Condo"),
-                  eq(properties.propertyType, "Townhouse")
-                )
+                  eq(properties.status, "Available"),
+                  eq(properties.status, "For Rent")
+                ),
+                sql`lower(${properties.propertyType}) IN ('house','apartment','villa','condo','townhouse','apartement building','shop')`
               )
             );
           }
