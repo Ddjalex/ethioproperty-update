@@ -3,6 +3,12 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import sanitizeHtml from 'sanitize-html';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { scrypt, randomBytes } from 'crypto';
+import { promisify } from 'util';
+
+const scryptAsync = promisify(scrypt);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -129,6 +135,99 @@ function pageFooter() {
   </p>
 </footer>
 </body></html>`;
+}
+
+/* ─── GOOGLE OAUTH LOGIN ─────────────────────────────────
+   Reuses the Passport session already configured by server/auth.ts
+   (passport.initialize()/passport.session() + serializeUser/deserializeUser
+   run against the real `users` table before this module loads). We only
+   register an additional Strategy + two routes here. ────────────────── */
+async function hashRandomPassword() {
+  // Google-signup accounts still need a `password` value (NOT NULL column)
+  // but must never be usable for local/password login, so we store a long
+  // random value in the same "hash.salt" format as hashPassword() below.
+  const salt = randomBytes(16).toString('hex');
+  const buf = await scryptAsync(randomBytes(32).toString('hex'), salt, 64);
+  return `${buf.toString('hex')}.${salt}`;
+}
+
+function usernameBaseFromProfile(profile, email) {
+  const source = profile.displayName || (email ? email.split('@')[0] : 'user');
+  const cleaned = source.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  return cleaned || 'user';
+}
+
+async function findOrCreateGoogleUser(pool, profile) {
+  const email = profile.emails && profile.emails[0] && profile.emails[0].value;
+  if (!email) {
+    throw new Error('Google account did not return an email address');
+  }
+  const { rows: existingRows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  if (existingRows[0]) {
+    return existingRows[0];
+  }
+  const base = usernameBaseFromProfile(profile, email);
+  let username = base;
+  let suffix = 0;
+  // Guard against username collisions since `username` is UNIQUE NOT NULL.
+  while (true) {
+    const { rows } = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
+    if (rows.length === 0) break;
+    suffix += 1;
+    username = `${base}${suffix}`;
+  }
+  const password = await hashRandomPassword();
+  const { rows: inserted } = await pool.query(
+    'INSERT INTO users (username, password, email, is_admin) VALUES ($1, $2, $3, false) RETURNING *',
+    [username, password, email]
+  );
+  console.log(`[extensions] Created new user via Google sign-in: ${username} <${email}>`);
+  return inserted[0];
+}
+
+function registerGoogleAuthRoutes(app, pool) {
+  const clientID = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientID || !clientSecret) {
+    console.warn('[extensions] Google OAuth skipped: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set');
+    return;
+  }
+
+  passport.use(new GoogleStrategy(
+    {
+      clientID,
+      clientSecret,
+      // Relative callbackURL: passport-oauth2 resolves this against the
+      // incoming request's protocol+host, so it works unchanged on both
+      // ethioproperty.com and the Replit preview domain, as long as each
+      // exact "<host>/auth/google/callback" is registered in Google Cloud
+      // Console as an authorized redirect URI.
+      callbackURL: '/auth/google/callback'
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const user = await findOrCreateGoogleUser(pool, profile);
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    }
+  ));
+
+  app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+  app.get(
+    '/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/auth?error=login-failed' }),
+    (req, res) => {
+      // Session is established by passport.authenticate above; hand off to
+      // the existing /auth page, which already redirects a logged-in user
+      // onward (same behavior as a successful username/password login).
+      res.redirect('/auth');
+    }
+  );
+
+  console.log('[extensions] Google OAuth routes registered (/auth/google, /auth/google/callback)');
 }
 
 /* ─── DB migrations (blog + AI prompts only — this project's own subscribers
@@ -800,6 +899,7 @@ export async function setup(app) {
     registerBlogRoutes(app, pool);
     registerBlogSSRRoutes(app, pool);
     registerAIRoutes(app, pool);
+    registerGoogleAuthRoutes(app, pool);
     console.log('[extensions] All features registered successfully');
   } catch (err) {
     console.error('[extensions] Setup error:', err.message);
