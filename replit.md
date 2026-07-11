@@ -29,7 +29,11 @@ A real-estate listing site for Addis Ababa, Ethiopia ("EthioProperty" / "Prime A
 
 ## Secrets configured
 - `SESSION_SECRET`
-- `DATABASE_URL` (Neon production DB)
+- `DATABASE_URL` (Neon production DB — set as a secret to override Replit's auto-provisioned Postgres, which otherwise silently takes over this env var on fresh imports/checkouts)
+
+## Setup status (as of latest import)
+- `npm install` run, workflow verified against the real Neon DB, homepage confirmed loading via screenshot.
+- Follow-up task filed for the admin-credential-reset-on-boot issue described above (see project tasks).
 
 ## Optional/unused integrations referenced in code
 AWS SES, Gmail SMTP, Brevo, Gemini API — currently not configured; email sending logs to console only when unset.
