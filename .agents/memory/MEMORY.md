@@ -5,4 +5,6 @@
 - [Headless browser testing without npx](headless-browser-testing-without-npx.md) — npx is unavailable in this shell; use npm install playwright-core + the nix store's prebuilt chromium binary to drive real click/navigation tests.
 - [No-source frontend patches](no-source-frontend-patches.md) — EthioProperty/Prime Addis ships only a compiled bundle; fix UI bugs via small vanilla-JS patch scripts registered in index.html, not by editing the minified bundle.
 - [Relative OAuth callback URLs](relative-oauth-callback-url.md) — passport-oauth2 strategies resolve a relative callbackURL from the request's host, so one config works across multiple domains if each is registered with the provider.
+- [Detached-element outside-click bug](detached-target-outside-click-bug.md) — self-removing children (chips/dismiss buttons) make `contains(e.target)` outside-click checks misfire; use `composedPath()` instead.
+- [Real-time voice startup latency](realtime-voice-latency-buffering.md) — don't gate getUserMedia() behind the server handshake; start mic capture in parallel and buffer until 'ready'.
 </content>

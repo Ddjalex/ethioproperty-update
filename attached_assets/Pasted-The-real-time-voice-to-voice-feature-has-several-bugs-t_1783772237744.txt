@@ -1,0 +1,21 @@
+The real-time voice-to-voice feature has several bugs to fix:
+
+BUG 1 — Slow response time
+There's significant delay both in the AI starting to respond and in it fully replying. Please check:
+- Is audio being streamed continuously to the Gemini Live API WebSocket, or is it buffering/waiting before sending?
+- Check for any unnecessary round-trips or blocking calls in the audio pipeline (mic capture → send → receive → playback)
+- Confirm the WebSocket connection to Gemini Live API is established ONCE at conversation start, not reconnecting per utterance
+
+BUG 2 — Not detecting user's voice in real time
+The mic doesn't seem to pick up speech promptly / voice activity detection isn't working well. Check:
+- Is voice activity detection (VAD) implemented client-side, server-side, or relying on Gemini Live API's built-in turn detection?
+- Confirm microphone audio is actually being captured and streamed continuously, not just on button press-and-hold
+- Check browser console for any getUserMedia or audio permission errors
+
+BUG 3 — Closing the panel doesn't stop the voice session (this is the most important one)
+When a user selects a quick-reply option and the AI panel closes, the voice/mic connection stays active in the background — the AI keeps listening even though the visible chat is closed. This is a real problem (privacy issue, wasted API usage, confusing behavior). Please:
+- Ensure closing the chat panel (X button, or any panel-close trigger) fully tears down the WebSocket connection to Gemini Live API and stops microphone capture (release the media stream, call getTracks().forEach(track => track.stop()) on the mic stream)
+- Add a clear visual "Listening..." or "Live voice active" indicator whenever the mic is actually open, so it's never silently listening without the user knowing
+- Test explicitly: open voice mode, close the panel, check browser's mic indicator (the little dot/icon in the browser tab or address bar) — it should turn off immediately when the panel closes, not stay active
+
+Please prioritize BUG 3 first since it's a real privacy/trust issue, then fix latency and detection. Report back what you find causing each, and confirm all three are resolved with the mic-off verification test above.

@@ -259,6 +259,22 @@
     .pa-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes pa-bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
 
+    /* ── Live voice indicator ── */
+    .pa-live-banner {
+      display: none; align-items: center; justify-content: center; gap: 7px;
+      background: #fef2f2; color: #b91c1c; font-size: 11.5px; font-weight: 700;
+      padding: 7px 12px; border-bottom: 1px solid rgba(185,28,28,0.15);
+    }
+    .pa-live-banner.on { display: flex; }
+    .pa-live-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #dc2626;
+      animation: pa-live-pulse 1.2s infinite;
+    }
+    @keyframes pa-live-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+      50% { box-shadow: 0 0 0 5px rgba(220,38,38,0); }
+    }
+
     /* ── Status bar ── */
     .pa-status {
       text-align: center; font-size: 11.5px;
@@ -455,6 +471,9 @@
         <button class="pa-close-btn" id="pa-close" title="${t('close')}">✕</button>
       </div>
     </div>
+    <div class="pa-live-banner" id="pa-live-banner">
+      <span class="pa-live-dot"></span>${t('liveActive')}
+    </div>
     <div class="pa-msgs" id="pa-msgs"></div>
     <div class="pa-status" id="pa-status"></div>
     <div class="pa-input-wrap">
@@ -476,6 +495,12 @@
   var closeEl = document.getElementById('pa-close');
   var langEl  = document.getElementById('pa-lang');
   var statusEl  = document.getElementById('pa-status');
+  var liveBannerEl = document.getElementById('pa-live-banner');
+
+  function showLiveIndicator(on) {
+    if (!liveBannerEl) return;
+    liveBannerEl.classList.toggle('on', !!on);
+  }
   var titleEl   = document.getElementById('pa-hdr-title');
   var subEl     = document.getElementById('pa-hdr-sub');
 
@@ -1211,8 +1236,19 @@
 
   document.addEventListener('click', function (e) {
     if (!isOpen) return;
-    if (panel.contains(e.target)) return;
-    if (e.target.closest('#pa-ai-fab-btn')) return;
+    /* Use composedPath() instead of panel.contains(e.target): quick-reply
+       chips, welcome-card chips, and the contact-card "skip" button all
+       remove themselves from the DOM inside their own click handler
+       (which fires before this document-level listener, since it's
+       bubbling from the same click). By the time we get here, e.target
+       is already detached, so panel.contains(e.target) incorrectly
+       returns false and used to auto-close the whole chat. composedPath()
+       captures the path at dispatch time, before any removal, so it
+       still reports the panel as an ancestor. */
+    var path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+    if (path.indexOf(panel) !== -1) return;
+    var fab = document.getElementById('pa-ai-fab-btn');
+    if (fab && path.indexOf(fab) !== -1) return;
     closePanel();
   });
 
@@ -1235,6 +1271,8 @@
   var nextPlayAt = 0;
   var liveUserMsgEl = null;    // in-progress user transcript bubble
   var liveAiMsgEl = null;      // in-progress assistant transcript bubble
+  var pendingMicChunks = [];   // audio captured before the server said 'ready'
+  var micRequestToken = 0;     // bumped on stop so a late getUserMedia resolve is ignored
 
   function ab2b64(buffer) {
     var bytes = new Uint8Array(buffer), bin = '';
@@ -1296,7 +1334,17 @@
       liveActive = true;
       updateVoiceButtonUI();
       setStatus(t('liveActive'));
-      startMicCaptureLive();
+      showLiveIndicator(true);
+      /* Mic capture was already kicked off in parallel back in
+         startLiveVoice() so no speech is lost while we waited on the
+         Google Live API setup round-trip. Flush anything captured
+         during that wait now that the socket will actually accept it. */
+      if (pendingMicChunks.length) {
+        for (var i = 0; i < pendingMicChunks.length; i++) {
+          try { liveWs.send(pendingMicChunks[i]); } catch (e) {}
+        }
+        pendingMicChunks.length = 0;
+      }
       return;
     }
 
@@ -1343,30 +1391,57 @@
   }
 
   function startMicCaptureLive() {
+    /* Fired the moment the user hits the voice button — in parallel with
+       the WebSocket handshake to our server and Google's Live API setup
+       round-trip, not after it. This is what used to gate mic capture
+       behind the 'ready' message, adding the full network round-trip
+       (our server -> Gemini Live API -> setupComplete -> back to us)
+       before the mic was even opened, on top of however long the
+       getUserMedia() permission prompt itself takes. Now capture starts
+       immediately: chunks recorded before 'ready' arrives are queued in
+       pendingMicChunks and flushed as soon as the socket can accept them,
+       so no speech spoken right after tapping the button is lost. */
+    var myToken = ++micRequestToken;
     navigator.mediaDevices.getUserMedia({
       audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     }).then(function(stream) {
-      if (!liveWs || liveWs.readyState !== 1) { stream.getTracks().forEach(function(t){t.stop();}); return; }
+      /* The session may have been stopped (panel closed, button toggled
+         off) while the permission prompt was pending — bail out and
+         release the stream immediately rather than leaving it open. */
+      if (myToken !== micRequestToken || !liveWs || liveWs.readyState === 3 /* CLOSED */) {
+        stream.getTracks().forEach(function(t){t.stop();});
+        return;
+      }
       liveStream = stream;
       liveAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
       liveSource = liveAudioCtx.createMediaStreamSource(stream);
       liveProcessor = liveAudioCtx.createScriptProcessor(2048, 1, 1);
       liveProcessor.onaudioprocess = function(e) {
-        if (!liveWs || liveWs.readyState !== 1 || !liveActive) return;
+        if (myToken !== micRequestToken || !liveWs) return;
         var f32 = e.inputBuffer.getChannelData(0);
         var pcm16 = new Int16Array(f32.length);
         for (var i = 0; i < f32.length; i++) {
           var s = Math.max(-1, Math.min(1, f32[i]));
           pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
-        liveWs.send(JSON.stringify({
+        var frame = JSON.stringify({
           realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: ab2b64(pcm16.buffer) }] }
-        }));
+        });
+        if (liveActive && liveWs.readyState === 1) {
+          liveWs.send(frame);
+        } else if (liveConnecting) {
+          /* Still waiting on 'ready' — queue instead of dropping so the
+             first words spoken aren't lost. Cap the queue so a very slow
+             handshake can't build up an unbounded backlog. */
+          pendingMicChunks.push(frame);
+          if (pendingMicChunks.length > 200) pendingMicChunks.shift();
+        }
       };
       liveSource.connect(liveProcessor);
       liveProcessor.connect(liveAudioCtx.destination);
     }).catch(function(err) {
       console.error('[Live] Mic error:', err);
+      if (myToken !== micRequestToken) return;
       setStatus('⚠️ ' + t('micDenied'));
       stopLiveVoice();
       setTimeout(function() { setStatus(''); }, 4000);
@@ -1399,8 +1474,10 @@
     }
     stopSpeaking();
     liveConnecting = true;
+    pendingMicChunks.length = 0;
     updateVoiceButtonUI();
     setStatus(t('liveConnecting'));
+    showLiveIndicator(true);
 
     var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     try {
@@ -1418,6 +1495,10 @@
       liveWs.send(JSON.stringify({ type: 'init', lang: lang, propertyId: getCurrentPropertyId() }));
     };
     liveWs.onmessage = function(e) { handleLiveServerMsg(e.data); };
+    /* Kick off getUserMedia() now, in parallel with the WS handshake and
+       Gemini Live setup round-trip above, instead of waiting for 'ready'
+       to start capturing. See startMicCaptureLive() for details. */
+    startMicCaptureLive();
     liveWs.onerror = function() {
       console.warn('[Live] socket error');
     };
@@ -1432,15 +1513,18 @@
 
   function stopLiveVoice() {
     var wasActive = liveActive || liveConnecting;
+    micRequestToken++; // invalidate any in-flight getUserMedia() promise
     liveActive = false;
     liveConnecting = false;
     liveUserMsgEl = null;
     liveAiMsgEl = null;
+    pendingMicChunks.length = 0;
     stopMicStream();
     if (liveWs) { try { liveWs.close(); } catch(e){} liveWs = null; }
     if (playCtx) { try { playCtx.close(); } catch(e){} playCtx = null; }
     nextPlayAt = 0;
     updateVoiceButtonUI();
+    showLiveIndicator(false);
     if (wasActive) {
       var st = statusEl.textContent || '';
       if (st === t('liveActive') || st === t('liveConnecting')) setStatus('');
@@ -1469,6 +1553,11 @@
   });
   langEl.addEventListener('click', toggleLang);
   voiceEl.addEventListener('click', function() { startLiveVoice(); });
+
+  /* ── Safety net: never leave the mic/socket open behind a torn-down
+     page (reload, tab close, back/forward cache) ───────────────────── */
+  window.addEventListener('pagehide', stopLiveVoice);
+  window.addEventListener('beforeunload', stopLiveVoice);
 
   /* ── Hide on admin pages ─────────────────────── */
   function updateVisibilityForRoute() {
