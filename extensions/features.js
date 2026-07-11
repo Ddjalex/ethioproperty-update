@@ -468,6 +468,176 @@ const AI_PROMPT_CACHE = { value: null, expires: 0 };
 const AI_PROPS_CACHE  = { value: null, expires: 0 };
 const AI_CACHE_TTL_MS = 60 * 1000;
 
+/* ── Property search criteria extraction ──────────────────────────── */
+
+const SUBCITY_ALIASES = {
+  bole: 'Bole', kirkos: 'Kirkos', yeka: 'Yeka', kolfe: 'Kolfe Keranio',
+  'kolfe keranio': 'Kolfe Keranio', 'nifas silk': 'Nifas Silk Lafto',
+  'nifas silk lafto': 'Nifas Silk Lafto', lafto: 'Nifas Silk Lafto',
+  arada: 'Arada', lideta: 'Lideta', gulele: 'Gulele',
+  'akaki': 'Akaki Kality', 'akaki kality': 'Akaki Kality', kality: 'Akaki Kality',
+  'addis ketema': 'Addis Ketema', lemi: 'Lemi Kura', 'lemi kura': 'Lemi Kura',
+  // popular neighbourhood names
+  'old airport': 'Bole', 'bole road': 'Bole', 'sarbet': 'Nifas Silk Lafto',
+  'megenagna': 'Yeka', 'kazanchis': 'Kirkos', 'mexico': 'Kirkos',
+  'piassa': 'Arada', 'arat kilo': 'Arada', 'semen': 'Gulele',
+  '4 kilo': 'Arada', '4kilo': 'Arada', 'kera': 'Lideta',
+  'summit': 'Bole', 'hayahulet': 'Bole', '22': 'Bole',
+};
+
+const PROPERTY_TYPE_ALIASES = {
+  apartment: 'Apartment', apt: 'Apartment', flat: 'Apartment', condo: 'Apartment',
+  house: 'House', home: 'House', villa: 'Villa', townhouse: 'Townhouse',
+  commercial: 'Commercial', office: 'Commercial', shop: 'Commercial', store: 'Commercial',
+  land: 'Land', plot: 'Land', lot: 'Land',
+};
+
+/**
+ * Extract searchable criteria from a free-text user message.
+ * Returns an object: { subcity, propertyType, bedrooms, minPrice, maxPrice, status }
+ * All fields are optional (undefined when not detected).
+ */
+function parseSearchCriteria(text) {
+  const t = (text || '').toLowerCase();
+  const criteria = {};
+
+  // Subcity / area
+  for (const [alias, canonical] of Object.entries(SUBCITY_ALIASES)) {
+    if (t.includes(alias)) { criteria.subcity = canonical; break; }
+  }
+
+  // Property type
+  for (const [alias, canonical] of Object.entries(PROPERTY_TYPE_ALIASES)) {
+    if (new RegExp(`\\b${alias}s?\\b`).test(t)) { criteria.propertyType = canonical; break; }
+  }
+
+  // Bedrooms — match patterns like "2 bed", "3-bedroom", "4br", "3bd", "two bedroom"
+  const WORD_NUMS = { one:1, two:2, three:3, four:4, five:5, six:6 };
+  const bedMatch = t.match(/(\d+)\s*[-\s]?(bed(?:room)?s?|br\b|bd\b)/) ||
+                   t.match(/(one|two|three|four|five|six)\s*[-\s]?bed(?:room)?s?/);
+  if (bedMatch) {
+    const raw = bedMatch[1];
+    criteria.bedrooms = WORD_NUMS[raw] ?? parseInt(raw, 10);
+  }
+
+  // Status — for rent / for sale
+  if (/\brent(al)?\b|\bto rent\b|\bfor rent\b/.test(t)) criteria.status = 'For Rent';
+  else if (/\bfor sale\b|\bbuy\b|\bpurchase\b|\bto buy\b/.test(t)) criteria.status = 'For Sale';
+
+  // Price — extract numeric ETB amounts (e.g. "3 million", "2.5m", "500k", "1,500,000")
+  const millionMatch = t.match(/(\d+(?:\.\d+)?)\s*(?:million|m\b)/);
+  const kMatch       = t.match(/(\d+(?:\.\d+)?)\s*(?:thousand|k\b)/);
+  const rawMatch     = t.match(/(?:etb|birr)?\s*([\d,]+)/);
+
+  let anchor = null;
+  if (millionMatch)      anchor = parseFloat(millionMatch[1]) * 1_000_000;
+  else if (kMatch)       anchor = parseFloat(kMatch[1]) * 1_000;
+  else if (rawMatch)     anchor = parseFloat(rawMatch[1].replace(/,/g, ''));
+
+  if (anchor && anchor >= 10_000) {
+    // "under X" / "below X" / "less than X" → max price
+    if (/\b(?:under|below|less than|max(?:imum)?|up to|budget)\b/.test(t)) {
+      criteria.maxPrice = anchor;
+    } else if (/\b(?:above|over|more than|at least|minimum|min)\b/.test(t)) {
+      criteria.minPrice = anchor;
+    } else {
+      // treat as an approximate anchor: ±60% range
+      criteria.minPrice = Math.round(anchor * 0.4);
+      criteria.maxPrice = Math.round(anchor * 1.6);
+    }
+  }
+
+  return criteria;
+}
+
+/**
+ * Query the DB for properties matching the extracted criteria.
+ * Returns a formatted string block (same style as getCachedPropertySummary)
+ * or null if no criteria were found / no matches.
+ */
+async function queryMatchingProperties(pool, criteria) {
+  const hasCriteria = Object.keys(criteria).length > 0;
+  if (!hasCriteria) return null;
+
+  const conditions = [];
+  const params = [];
+
+  if (criteria.subcity) {
+    params.push(`%${criteria.subcity}%`);
+    conditions.push(`(subcity ILIKE $${params.length} OR city ILIKE $${params.length} OR address ILIKE $${params.length})`);
+  }
+  if (criteria.propertyType) {
+    params.push(criteria.propertyType);
+    conditions.push(`property_type ILIKE $${params.length}`);
+  }
+  if (criteria.bedrooms) {
+    params.push(criteria.bedrooms);
+    conditions.push(`bedrooms = $${params.length}`);
+  }
+  if (criteria.status) {
+    params.push(criteria.status);
+    conditions.push(`status ILIKE $${params.length}`);
+  }
+  if (criteria.minPrice != null) {
+    params.push(criteria.minPrice);
+    conditions.push(`price >= $${params.length}`);
+  }
+  if (criteria.maxPrice != null) {
+    params.push(criteria.maxPrice);
+    conditions.push(`price <= $${params.length}`);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const sql = `
+    SELECT id, title, price, city, subcity, bedrooms, bathrooms,
+           property_type, status, address
+    FROM properties
+    ${where}
+    ORDER BY is_featured DESC, created_at DESC
+    LIMIT 8
+  `;
+
+  try {
+    const { rows } = await pool.query(sql, params);
+    if (!rows.length) {
+      // No exact matches — relax to a broader query (drop bedrooms/price if set)
+      const looseConds = [];
+      const looseParams = [];
+      if (criteria.subcity) {
+        looseParams.push(`%${criteria.subcity}%`);
+        looseConds.push(`(subcity ILIKE $${looseParams.length} OR city ILIKE $${looseParams.length} OR address ILIKE $${looseParams.length})`);
+      }
+      if (criteria.propertyType) {
+        looseParams.push(criteria.propertyType);
+        looseConds.push(`property_type ILIKE $${looseParams.length}`);
+      }
+      if (criteria.status) {
+        looseParams.push(criteria.status);
+        looseConds.push(`status ILIKE $${looseParams.length}`);
+      }
+      if (!looseConds.length) return null;
+      const looseWhere = `WHERE ${looseConds.join(' AND ')}`;
+      const { rows: looseRows } = await pool.query(
+        `SELECT id, title, price, city, subcity, bedrooms, bathrooms, property_type, status, address
+         FROM properties ${looseWhere}
+         ORDER BY is_featured DESC, created_at DESC LIMIT 8`,
+        looseParams
+      ).catch(() => ({ rows: [] }));
+      if (!looseRows.length) return null;
+      return `(Relaxed criteria — closest available matches)\n` +
+        looseRows.map(p =>
+          `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${[p.subcity, p.city].filter(Boolean).join(', ')} | ${p.bedrooms}bd ${p.bathrooms}ba | View: /properties/${p.id}`
+        ).join('\n');
+    }
+    return rows.map(p =>
+      `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${[p.subcity, p.city].filter(Boolean).join(', ')} | ${p.bedrooms}bd ${p.bathrooms}ba | View: /properties/${p.id}`
+    ).join('\n');
+  } catch (e) {
+    console.error('[AI search] query error:', e.message);
+    return null;
+  }
+}
+
 async function getCachedPrompts(pool) {
   const now = Date.now();
   if (AI_PROMPT_CACHE.value && now < AI_PROMPT_CACHE.expires) return AI_PROMPT_CACHE.value;
@@ -577,9 +747,18 @@ function registerAIRoutes(app, pool) {
     const pidNum = Number(propertyId);
     const hasPid = Number.isInteger(pidNum) && pidNum > 0;
 
-    const [promptByLang, propSummary, currentPropRes] = await Promise.all([
+    // Extract search criteria from the latest user message for targeted retrieval
+    const recentMessages = Array.isArray(messages) ? messages : [];
+    const lastUserMsg = [...recentMessages].reverse().find(m => m.role === 'user');
+    const criteria = hasPid ? {} : parseSearchCriteria(lastUserMsg?.content || '');
+    const hasSearchCriteria = Object.keys(criteria).length > 0;
+
+    const [promptByLang, propSummary, matchedListings, currentPropRes] = await Promise.all([
       getCachedPrompts(pool),
-      hasPid ? Promise.resolve('') : getCachedPropertySummary(pool),
+      // Use generic summary only when no specific criteria detected and not on a property page
+      (!hasPid && !hasSearchCriteria) ? getCachedPropertySummary(pool) : Promise.resolve(''),
+      // Run targeted search when criteria found
+      (!hasPid && hasSearchCriteria) ? queryMatchingProperties(pool, criteria) : Promise.resolve(null),
       hasPid
         ? pool.query(`SELECT * FROM properties WHERE id = $1 LIMIT 1`, [pidNum]).catch(() => ({ rows: [] }))
         : Promise.resolve({ rows: [] })
@@ -620,7 +799,23 @@ function registerAIRoutes(app, pool) {
       ? '\n\nIMPORTANT: Reply ONLY in Amharic (አማርኛ). Use simple, clear, professional Amharic. Never reply in English. Even when describing property data that is stored in English, translate or transliterate it into Amharic.'
       : '\n\nIMPORTANT: Reply ONLY in English. Use clear, professional English. Never reply in Amharic.';
 
-    const listingsBlock = propSummary ? `\n\nCurrent property listings:\n${propSummary}` : '';
+    // Build listings block: prefer targeted search results, fall back to generic summary
+    let listingsBlock = '';
+    if (matchedListings) {
+      const criteriaDesc = [
+        criteria.propertyType,
+        criteria.bedrooms ? `${criteria.bedrooms}-bedroom` : null,
+        criteria.subcity ? `in ${criteria.subcity}` : null,
+        criteria.status,
+        criteria.maxPrice ? `under ETB ${criteria.maxPrice.toLocaleString()}` : null,
+        criteria.minPrice ? `above ETB ${criteria.minPrice.toLocaleString()}` : null,
+      ].filter(Boolean).join(' ');
+      listingsBlock = `\n\nMatching listings from the database (${criteriaDesc || 'filtered search'}):\n${matchedListings}\n\nIMPORTANT: Base your answer on these real listings. Reference specific property IDs and prices from this list. Do not invent properties.`;
+      console.log(`[AI search] criteria: ${JSON.stringify(criteria)} → matched listings block injected`);
+    } else if (propSummary) {
+      listingsBlock = `\n\nCurrent property listings:\n${propSummary}`;
+    }
+
     const systemInstruction = `${basePrompt}${langInstruction}${listingsBlock}${currentPropertyBlock}`;
 
     const recent = Array.isArray(messages) ? messages.slice(-8) : [];
