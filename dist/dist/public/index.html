@@ -96,6 +96,7 @@
     <script type="text/javascript" src="/assets/admin-subscribers-patch.js?v=1"></script>
     <script type="text/javascript" src="/assets/admin-blog-patch.js?v=1"></script>
     <script type="text/javascript" src="/assets/nav-blog-link-patch.js?v=1"></script>
+    <script type="text/javascript" src="/assets/lang-toggle-patch.js?v=1"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-p-z5AN2h.css">
   </head>
   <body>
@@ -103,8 +104,26 @@
     <!-- This script injects a replit badge into the page, please feel free to remove this line -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-badge-v3.js"></script>
   <!--Start of Tawk.to Script-->
+<style>
+  /* Hide the Tawk.to widget (bubble + chat window) everywhere, without removing the script below. */
+  #tawkchat-container, .tawk-min-container, iframe[title="chat widget"], iframe[title="Tawk.to chat widget"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+</style>
 <script type="text/javascript">
 var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+Tawk_API.onLoad = function () {
+  // Keep the widget loaded/running in the background but visually hidden.
+  if (typeof Tawk_API.hideWidget === 'function') {
+    Tawk_API.hideWidget();
+  }
+};
+Tawk_API.onStatusChange = function () {
+  if (typeof Tawk_API.hideWidget === 'function') {
+    Tawk_API.hideWidget();
+  }
+};
 (function(){
 var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
 s1.async=true;
