@@ -99,8 +99,8 @@
 
     /* ── Header ── */
     .pa-header {
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%);
-      padding: 16px 18px 14px;
+      background: linear-gradient(135deg, #0F1729 0%, #16213b 55%, #1d2b4a 100%);
+      padding: 14px 18px 12px;
       display: flex; align-items: center; gap: 12px;
       position: relative; overflow: hidden;
     }
@@ -119,26 +119,27 @@
       border-radius: 50%;
     }
     .pa-hdr-avatar {
-      width: 42px; height: 42px; border-radius: 14px;
-      background: rgba(255,255,255,0.2);
+      width: 40px; height: 40px; border-radius: 12px;
+      background: #fff;
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px; flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      flex-shrink: 0; padding: 5px; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
       position: relative; z-index: 1;
     }
+    .pa-hdr-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .pa-hdr-text { flex: 1; position: relative; z-index: 1; }
     .pa-hdr-title { font-size: 15px; font-weight: 800; color: #fff; line-height: 1.2; }
     .pa-hdr-sub { font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 1px; }
     .pa-hdr-actions { display: flex; gap: 6px; align-items: center; position: relative; z-index: 1; }
     .pa-lang-btn {
-      background: rgba(255,255,255,0.18);
-      border: 1px solid rgba(255,255,255,0.35);
+      background: rgba(144,130,75,0.28);
+      border: 1px solid rgba(144,130,75,0.55);
       color: #fff; border-radius: 12px;
       padding: 4px 10px; font-size: 11px;
       cursor: pointer; font-weight: 700;
       transition: background 0.15s;
     }
-    .pa-lang-btn:hover { background: rgba(255,255,255,0.32); }
+    .pa-lang-btn:hover { background: rgba(144,130,75,0.45); }
     .pa-close-btn {
       width: 28px; height: 28px; border-radius: 50%;
       background: rgba(255,255,255,0.18);
@@ -405,37 +406,35 @@
     /* ── Language Picker ── */
     #pa-lang-picker {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      flex: 1; padding: 28px 20px; gap: 0;
-      background: linear-gradient(160deg, #f0f4ff 0%, #f5f0ff 100%);
+      flex: 1; padding: 20px 20px; gap: 0;
+      background: linear-gradient(160deg, #f7f7f5 0%, #f2f1ec 100%);
     }
-    .pa-lp-icon { font-size: 44px; margin-bottom: 14px; }
+    .pa-lp-icon { width: 52px; height: 52px; margin-bottom: 12px; }
+    .pa-lp-icon img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .pa-lp-title {
-      font-size: 17px; font-weight: 800; color: #312e81;
-      margin-bottom: 6px; text-align: center;
+      font-size: 16px; font-weight: 800; color: #0F1729;
+      margin-bottom: 4px; text-align: center;
     }
     .pa-lp-sub {
-      font-size: 13px; color: #6366f1; text-align: center;
-      margin-bottom: 28px; line-height: 1.5;
+      font-size: 12.5px; color: #6b7280; text-align: center;
+      margin-bottom: 16px; line-height: 1.45;
     }
-    .pa-lp-btns { display: flex; gap: 14px; }
+    .pa-lp-toggle {
+      display: inline-flex; background: #fff; border-radius: 999px;
+      padding: 4px; gap: 2px;
+      border: 1px solid rgba(15,23,41,0.1);
+      box-shadow: 0 4px 14px rgba(15,23,41,0.1);
+    }
     .pa-lp-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-      padding: 18px 28px; border-radius: 18px;
-      border: 2px solid rgba(99,102,241,0.25);
-      background: #fff;
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: 999px;
+      border: none; background: transparent; color: #0F1729;
       cursor: pointer; font-family: inherit;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 16px rgba(99,102,241,0.1);
+      font-size: 13px; font-weight: 700;
+      transition: background 0.18s, color 0.18s;
     }
-    .pa-lp-btn:hover {
-      border-color: #6366f1;
-      background: linear-gradient(135deg, #eef2ff, #f5f0ff);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(99,102,241,0.2);
-    }
-    .pa-lp-flag { font-size: 32px; }
-    .pa-lp-name { font-size: 15px; font-weight: 700; color: #312e81; }
-    .pa-lp-hint { font-size: 11px; color: #818cf8; margin-top: 2px; }
+    .pa-lp-btn:hover { background: #0F1729; color: #fff; }
+    .pa-lp-flag { font-size: 15px; line-height: 1; }
   `;
   document.head.appendChild(style);
 
@@ -444,7 +443,7 @@
   panel.id = 'pa-ai-panel';
   panel.innerHTML = `
     <div class="pa-header">
-      <div class="pa-hdr-avatar">🏠</div>
+      <div class="pa-hdr-avatar"><img src="/assets/ethioproperty.png" alt="Ethio Property" /></div>
       <div class="pa-hdr-text">
         <div class="pa-hdr-title" id="pa-hdr-title">
           <span class="pa-online-dot"></span>${t('header')}
@@ -1122,19 +1121,15 @@
     var picker = document.createElement('div');
     picker.id = 'pa-lang-picker';
     picker.innerHTML =
-      '<div class="pa-lp-icon">🏠</div>' +
+      '<div class="pa-lp-icon"><img src="/assets/ethioproperty.png" alt="Ethio Property" /></div>' +
       '<div class="pa-lp-title">Welcome to Ethio Property AI</div>' +
-      '<div class="pa-lp-sub">Choose your language to begin<br>ቋንቋዎን ይምረጡ</div>' +
-      '<div class="pa-lp-btns">' +
+      '<div class="pa-lp-sub">Choose your language to begin · ቋንቋዎን ይምረጡ</div>' +
+      '<div class="pa-lp-toggle">' +
         '<button class="pa-lp-btn" data-lang="en">' +
-          '<span class="pa-lp-flag">🇬🇧</span>' +
-          '<span class="pa-lp-name">English</span>' +
-          '<span class="pa-lp-hint">Continue in English</span>' +
+          '<span class="pa-lp-flag">🇬🇧</span> English' +
         '</button>' +
         '<button class="pa-lp-btn" data-lang="am">' +
-          '<span class="pa-lp-flag">🇪🇹</span>' +
-          '<span class="pa-lp-name">አማርኛ</span>' +
-          '<span class="pa-lp-hint">በአማርኛ ይቀጥሉ</span>' +
+          '<span class="pa-lp-flag">🇪🇹</span> አማርኛ' +
         '</button>' +
       '</div>';
 
