@@ -32,11 +32,13 @@ A real-estate listing site for Addis Ababa, Ethiopia ("EthioProperty" / "Prime A
 - `DATABASE_URL` (Neon production DB — set as a secret to override Replit's auto-provisioned Postgres, which otherwise silently takes over this env var on fresh imports/checkouts)
 
 ## Setup status (as of migration — July 11, 2026)
-- `npm install` run, packages in place.
+- `npm install` run, packages in place. Note: on a fresh import `node_modules` is not carried over even though `package-lock.json` is — always run `npm install` before starting the workflow.
 - Replit runtime-manages `DATABASE_URL` (points to local `helium` Postgres). Workaround: `start.js` wrapper overrides it with `NEON_DATABASE_URL` secret before launching the app.
 - Workflow command: `NODE_ENV=production node start.js` (port 5000).
-- Neon DB confirmed connected: `ep-delicate-term-aecpdauf-pooler.c-2.us-east-2.aws.neon.tech` — homepage loads successfully.
+- Neon DB confirmed connected: `ep-delicate-term-aecpdauf-pooler.c-2.us-east-2.aws.neon.tech` — homepage loads successfully, 64 properties render.
+- Note: the `NEON_DATABASE_URL` secret also does not carry over on a fresh import/checkout and must be re-entered by the user each time (re-confirmed working July 11, 2026).
 - Known issue: admin password is reset to `admin123` on every boot (see Database section).
+- Known cosmetic issue: `ask-ai-bottom-left-button-patch.js` throws a `Cannot read properties of null (reading 'appendChild')` console error on load; pre-existing, does not affect functionality.
 
 ## Optional/unused integrations referenced in code
 AWS SES, Gmail SMTP, Brevo, Gemini API — currently not configured; email sending logs to console only when unset.
