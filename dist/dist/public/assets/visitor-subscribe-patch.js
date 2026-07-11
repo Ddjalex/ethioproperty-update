@@ -50,7 +50,18 @@
     ].join('');
     document.body.appendChild(backdrop);
     requestAnimationFrame(function () { backdrop.style.opacity = '1'; });
-    backdrop.addEventListener('click', dismissPopup);
+    backdrop.addEventListener('click', function (e) {
+      var x = e.clientX, y = e.clientY;
+      dismissPopup();
+      /* Let the click "pass through" to whatever the user actually meant to click
+         (e.g. the Buy/Rent toggle or Search button underneath), instead of just
+         swallowing it and requiring a second click. */
+      backdrop.style.pointerEvents = 'none';
+      var under = document.elementFromPoint(x, y);
+      if (under && under !== backdrop && typeof under.click === 'function') {
+        under.click();
+      }
+    });
 
     /* --- Popup card --- */
     var wrapper = document.createElement('div');
@@ -139,5 +150,21 @@
     closePopup();
   });
 
-  setTimeout(showPopup, 2500);
+  /* Don't interrupt someone who is actively using the page (e.g. the hero
+     Buy/Rent toggle + search bar, which visually sits in the same spot this
+     popup appears): only show once there's been a short pause with no clicks
+     or keystrokes, and keep pushing it back while the user stays engaged. */
+  var _showTimer = null;
+  function scheduleShow(delay) {
+    if (document.getElementById('pa-subscribe-popup')) return;
+    clearTimeout(_showTimer);
+    _showTimer = setTimeout(showPopup, delay);
+  }
+  ['click', 'keydown', 'touchstart'].forEach(function (evt) {
+    document.addEventListener(evt, function () {
+      if (document.getElementById('pa-subscribe-popup')) return;
+      scheduleShow(4000);
+    }, { capture: true, passive: true });
+  });
+  scheduleShow(4000);
 })();
