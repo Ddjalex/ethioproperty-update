@@ -289,6 +289,7 @@
       credentials: 'include'
     })
       .then(function (r) {
+        if (r.status === 401) throw new Error('SESSION_EXPIRED');
         if (!r.ok) throw new Error('Server error ' + r.status);
         return r.json();
       })
@@ -298,7 +299,14 @@
         showStatus('✓ Saved!', 'success');
       })
       .catch(function (e) {
-        showStatus('Error: ' + e.message, 'error');
+        if (e.message === 'SESSION_EXPIRED') {
+          showStatus('Session expired — please log in again', 'error');
+          setTimeout(function () {
+            window.location.href = '/auth/login?redirect=/admin';
+          }, 1500);
+        } else {
+          showStatus('Error: ' + e.message, 'error');
+        }
       })
       .finally(function () {
         btn.disabled = false;
