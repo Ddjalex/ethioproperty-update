@@ -207,23 +207,50 @@ function registerGoogleAuthRoutes(app, pool) {
     async (accessToken, refreshToken, profile, done) => {
       try {
         const user = await findOrCreateGoogleUser(pool, profile);
-        return done(null, user);
+        // Passed through as req.authInfo on the callback route below (not
+        // persisted) so lead-capture forms can prefill the user's actual
+        // Google display name, since the stored `username` is a slugified
+        // value and may not match it.
+        return done(null, user, { displayName: profile.displayName || '' });
       } catch (err) {
         return done(err);
       }
     }
   ));
 
-  app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+  // Only allow redirecting back to a same-site relative path (e.g. a lead
+  // capture form the user was filling out), never an absolute/external URL,
+  // to avoid this becoming an open redirect.
+  function safeReturnTo(value) {
+    if (typeof value !== 'string') return null;
+    if (!value.startsWith('/') || value.startsWith('//') || value.includes('://')) return null;
+    return value;
+  }
+
+  app.get('/auth/google', (req, res, next) => {
+    const returnTo = safeReturnTo(req.query.returnTo);
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      ...(returnTo ? { state: returnTo } : {})
+    })(req, res, next);
+  });
 
   app.get(
     '/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/auth?error=login-failed' }),
     (req, res) => {
-      // Session is established by passport.authenticate above; hand off to
-      // the existing /auth page, which already redirects a logged-in user
-      // onward (same behavior as a successful username/password login).
-      res.redirect('/auth');
+      // Session is established by passport.authenticate above. If the user
+      // started this flow from a lead-capture form (Request Property
+      // Updates / Inquiry / Visit), send them back to it so the
+      // google-signin-patch can prefill their name/email; otherwise fall
+      // back to the existing /auth page behavior.
+      const returnTo = safeReturnTo(req.query.state);
+      if (!returnTo) {
+        return res.redirect('/auth');
+      }
+      const displayName = (req.authInfo && req.authInfo.displayName) || '';
+      const sep = returnTo.includes('?') ? '&' : '?';
+      res.redirect(`${returnTo}${sep}paGoogleName=${encodeURIComponent(displayName)}`);
     }
   );
 
