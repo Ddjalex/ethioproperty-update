@@ -6,14 +6,11 @@
   function init() {
 
   var lang = 'en';
-  var micLang = 'en'; // Default to English — browsers widely support en-US recognition
   var messages = [];
   var isOpen = false;
   var greetingShown = false; // prevent double-greeting on rapid open
-  var isListening = false;
   var isSpeaking = false;
   var synthesis = window.speechSynthesis;
-  var recognition = null;
   var currentUtterance = null;
   var currentAudio = null;
   var sessionVoice = null; // locked TTS for session: 'gemini' | 'google' | null
@@ -26,14 +23,17 @@
       subtitle: 'Your smart property guide',
       placeholder: 'Ask about properties...',
       send: 'Send',
-      mic: 'Speak',
-      stop: 'Stop',
+      voiceTitle: 'Start live voice conversation',
+      stopVoiceTitle: 'End live voice conversation',
       langToggle: 'አማርኛ',
       greeting: '',
-      listening: '🎤 Listening... speak now',
+      liveConnecting: '🎙️ Connecting...',
+      liveActive: '🔴 Live — speak naturally...',
       thinking: 'Thinking...',
       micUnsupported: 'Voice input is not supported in this browser. Please try Chrome.',
       micDenied: 'Microphone access was denied. Please allow microphone in your browser settings.',
+      liveFailed: '⚠️ Live voice connection failed. Please type your message instead.',
+      liveEnded: 'Live voice session ended. You can keep typing.',
       close: 'Close',
       poweredBy: 'Powered by Gemini AI',
     },
@@ -43,14 +43,17 @@
       subtitle: 'የርስዎ የንብረት ረዳት',
       placeholder: 'ስለ ቤቶች ይጠይቁ...',
       send: 'ላክ',
-      mic: 'ተናገሩ',
-      stop: 'አቁም',
+      voiceTitle: 'ቀጥታ የድምጽ ውይይት ጀምር',
+      stopVoiceTitle: 'ቀጥታ የድምጽ ውይይት አቁም',
       langToggle: 'English',
       greeting: '',
-      listening: '🎤 እያዳምጥኩ...',
+      liveConnecting: '🎙️ በመገናኘት ላይ...',
+      liveActive: '🔴 ቀጥታ — በተፈጥሮ ይናገሩ...',
       thinking: 'እያስብኩ...',
       micUnsupported: 'ድምጽ ግብዓት በዚህ አሳሽ አይሰራም። Chrome ይጠቀሙ።',
       micDenied: 'ማይክሮፎን ፈቃድ ተከልክሏል። እባክዎ ፈቃዱን ፍቀዱ።',
+      liveFailed: '⚠️ ቀጥታ የድምጽ ግንኙነት አልተሳካም። እባክዎ በጽሁፍ ይላኩ።',
+      liveEnded: 'ቀጥታ የድምጽ ውይይት አብቅቷል። በጽሁፍ መቀጠል ይችላሉ።',
       close: 'ዝጋ',
       poweredBy: 'በ Gemini AI የሚሰራ',
     }
@@ -314,28 +317,17 @@
     .pa-send-btn:hover { transform: scale(1.08); box-shadow: 0 4px 14px rgba(79,70,229,0.45); }
     .pa-send-btn:active { transform: scale(0.96); }
 
-    .pa-mic-btn {
-      background: #f1f5f9; color: #64748b;
-      border: 1.5px solid #e2e8f0;
-    }
-    .pa-mic-btn:hover { background: #e8edff; color: #6366f1; border-color: #c7d2fe; }
-    .pa-mic-btn.listening {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: #fff; border-color: transparent;
-      box-shadow: 0 0 0 4px rgba(239,68,68,0.2);
-      animation: pa-mic-pulse 1.2s infinite;
-    }
-    @keyframes pa-mic-pulse {
-      0%,100% { box-shadow: 0 0 0 4px rgba(239,68,68,0.2); }
-      50% { box-shadow: 0 0 0 8px rgba(239,68,68,0.08); }
-    }
-
-    .pa-live-btn {
+    /* ── Single voice button: idle → connecting → live ── */
+    .pa-voice-btn {
       background: #f1f5f9; color: #ef4444;
       border: 1.5px solid #fecaca;
     }
-    .pa-live-btn:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
-    .pa-live-btn.live-active {
+    .pa-voice-btn:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+    .pa-voice-btn.connecting {
+      background: #fff7ed; color: #ea580c; border-color: #fed7aa;
+      animation: pa-live-pulse 0.9s infinite;
+    }
+    .pa-voice-btn.live-active {
       background: linear-gradient(135deg, #ef4444, #dc2626);
       color: #fff; border-color: transparent;
       animation: pa-live-pulse 1.5s infinite;
@@ -344,21 +336,6 @@
       0%,100% { box-shadow: 0 0 0 4px rgba(239,68,68,0.25); }
       50% { box-shadow: 0 0 0 9px rgba(239,68,68,0.07); }
     }
-
-    /* ── Mic language pill ── */
-    .pa-mic-lang {
-      height: 32px; min-width: 44px;
-      padding: 0 10px; border-radius: 16px;
-      border: 1.5px solid #c7d2fe;
-      background: #eef2ff; color: #4338ca;
-      font-size: 11px; font-weight: 800;
-      font-family: inherit; cursor: pointer; flex-shrink: 0;
-      transition: all 0.18s;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .pa-mic-lang:hover { background: #e0e7ff; border-color: #a5b4fc; }
-    .pa-mic-lang.am { background: #fef9c3; border-color: #fde047; color: #854d0e; }
-    .pa-mic-lang.am:hover { background: #fef08a; }
 
     /* ── Footer credit ── */
     .pa-footer {
@@ -484,9 +461,7 @@
     <div class="pa-input-wrap">
       <div class="pa-input-row">
         <textarea class="pa-input" id="pa-input" placeholder="${t('placeholder')}" rows="1" autocomplete="off"></textarea>
-        <button class="pa-icon-btn pa-mic-lang am" id="pa-mic-lang" title="Mic language">አማ</button>
-        <button class="pa-icon-btn pa-mic-btn" id="pa-mic" title="${t('mic')}">🎤</button>
-        <button class="pa-icon-btn pa-live-btn" id="pa-live" title="Live voice conversation">🎙️</button>
+        <button class="pa-icon-btn pa-voice-btn" id="pa-voice" title="${t('voiceTitle')}">🎙️</button>
         <button class="pa-icon-btn pa-send-btn" id="pa-send" title="${t('send')}">➤</button>
       </div>
     </div>
@@ -498,10 +473,9 @@
   var msgsEl  = document.getElementById('pa-msgs');
   var inputEl = document.getElementById('pa-input');
   var sendEl  = document.getElementById('pa-send');
-  var micEl   = document.getElementById('pa-mic');
+  var voiceEl = document.getElementById('pa-voice');
   var closeEl = document.getElementById('pa-close');
   var langEl  = document.getElementById('pa-lang');
-  var micLangEl = document.getElementById('pa-mic-lang');
   var statusEl  = document.getElementById('pa-status');
   var titleEl   = document.getElementById('pa-hdr-title');
   var subEl     = document.getElementById('pa-hdr-sub');
@@ -872,291 +846,6 @@
     isSpeaking = false;
   }
 
-  /* ── Speech Recognition ─────────────────────────────────────
-     Two paths depending on the chosen mic language:
-       • English  → browser Web Speech API (en-US, widely supported)
-       • Amharic  → MediaRecorder captures audio → POST /api/ai/transcribe
-                    (Gemini transcribes the audio to Amharic text)
-  ─────────────────────────────────────────────────────────── */
-
-  var mediaRecorder = null;
-  var recordedChunks = [];
-  var recordingTimer = null;
-  var MAX_RECORD_MS = 12000; // auto-stop after 12 s
-
-  /* ── English path: Web Speech API ── */
-  function setupWebSpeechRecognition() {
-    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return null;
-    var r = new SR();
-    r.continuous = false;
-    r.interimResults = false;
-    r.lang = 'en-US';
-    r.onresult = function (e) {
-      var transcript = e.results[0][0].transcript;
-      inputEl.value = transcript;
-      stopListening();
-      sendMessage();
-    };
-    r.onerror = function (e) {
-      console.warn('[AI Mic EN] error:', e.error);
-      if (e.error === 'not-allowed' || e.error === 'permission-denied') {
-        setStatus('⚠️ ' + t('micDenied'));
-        setTimeout(function () { setStatus(''); }, 4000);
-      } else if (e.error === 'no-speech') {
-        setStatus('No speech detected — try again');
-        setTimeout(function () { setStatus(''); }, 2500);
-      }
-      stopListening();
-    };
-    r.onend = function () { if (isListening) stopListening(); };
-    return r;
-  }
-
-  /* ── Amharic path: Web Speech API first, Gemini MediaRecorder fallback ── */
-  function startAmharicWebSpeech(SR) {
-    var rec = new SR();
-    rec.lang = 'am-ET';
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-    var resultReceived = false; // track whether onresult fired
-
-    isListening = true;
-    micEl.classList.add('listening');
-    micEl.innerHTML = '⏹';
-    setStatus('🎤 እያዳምጥኩ... ለማቆም ⏹ ይጫኑ');
-
-    rec.onresult = function (e) {
-      resultReceived = true;
-      var transcript = (e.results[0][0].transcript || '').trim();
-      stopListening();
-      if (transcript) {
-        inputEl.value = transcript;
-        sendMessage();
-      } else {
-        setStatus('ምንም ድምጽ አልተያዘም — እንደገና ይሞክሩ');
-        setTimeout(function () { setStatus(''); }, 2500);
-      }
-    };
-
-    rec.onerror = function (err) {
-      resultReceived = true; // treat error as handled so onend doesn't double-act
-      console.warn('[AI Mic AM Web] error:', err.error);
-      stopListening();
-      if (err.error === 'language-not-supported' || err.error === 'service-not-allowed') {
-        /* Browser doesn't support am-ET — fall back to Gemini MediaRecorder */
-        if (navigator.mediaDevices && window.MediaRecorder) {
-          startAmharicRecording();
-        } else {
-          setStatus('⚠️ ' + t('micUnsupported'));
-          setTimeout(function () { setStatus(''); }, 4000);
-        }
-      } else if (err.error === 'not-allowed' || err.error === 'permission-denied') {
-        setStatus('⚠️ ' + t('micDenied'));
-        setTimeout(function () { setStatus(''); }, 4000);
-      } else if (err.error === 'no-speech') {
-        setStatus('ምንም ድምጽ አልተያዘም — እንደገና ይሞክሩ');
-        setTimeout(function () { setStatus(''); }, 2500);
-      } else {
-        setStatus('ምንም ድምጽ አልተያዘም — እንደገና ይሞክሩ');
-        setTimeout(function () { setStatus(''); }, 2500);
-      }
-    };
-
-    rec.onend = function () {
-      if (!resultReceived) {
-        /* Recognition ended silently (network timeout / no mic data) */
-        stopListening();
-        setStatus('ምንም ድምጽ አልተያዘም — እንደገና ይሞክሩ');
-        setTimeout(function () { setStatus(''); }, 2500);
-      } else if (isListening) {
-        stopListening();
-      }
-    };
-
-    /* Store so stopListening() can abort it */
-    recognition = rec;
-    try { rec.start(); } catch (e) {
-      console.warn('[AI Mic AM Web] start error:', e);
-      stopListening();
-      if (navigator.mediaDevices && window.MediaRecorder) startAmharicRecording();
-    }
-  }
-
-  /* ── Amharic path: MediaRecorder → Gemini transcription ── */
-  function startAmharicRecording() {
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      recordedChunks = [];
-
-      // Pick a supported MIME type
-      var mimeType = 'audio/webm';
-      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mimeType = 'audio/webm;codecs=opus';
-      else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) mimeType = 'audio/ogg;codecs=opus';
-
-      mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
-      mediaRecorder.ondataavailable = function (e) {
-        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-      };
-      mediaRecorder.onstop = function () {
-        // Stop mic stream tracks
-        stream.getTracks().forEach(function (t) { t.stop(); });
-        submitAmharicAudio(mimeType);
-      };
-      mediaRecorder.start(200); // collect chunks every 200 ms
-      isListening = true;
-      micEl.classList.add('listening');
-      micEl.innerHTML = '⏹';
-      setStatus('🎤 እያዳምጥኩ... ለማቆም ⏹ ይጫኑ');
-
-      // Auto-stop after MAX_RECORD_MS
-      recordingTimer = setTimeout(function () { stopListening(); }, MAX_RECORD_MS);
-    }).catch(function (err) {
-      console.warn('[AI Mic AM] getUserMedia error:', err);
-      var msg = (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
-        ? t('micDenied') : t('micUnsupported');
-      setStatus('⚠️ ' + msg);
-      setTimeout(function () { setStatus(''); }, 4000);
-      stopListening();
-    });
-  }
-
-  function stopAmharicRecording() {
-    if (recordingTimer) { clearTimeout(recordingTimer); recordingTimer = null; }
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop(); // triggers onstop → submitAmharicAudio
-    }
-    mediaRecorder = null;
-    isListening = false;
-    micEl.classList.remove('listening');
-    micEl.innerHTML = '🎤';
-    setStatus('⏳ ' + (lang === 'am' ? 'ትርጉም እየጠበቅኩ...' : 'Transcribing...'));
-  }
-
-  function submitAmharicAudio(mimeType) {
-    if (recordedChunks.length === 0) { setStatus(''); return; }
-    var blob = new Blob(recordedChunks, { type: mimeType });
-    recordedChunks = [];
-    var fd = new FormData();
-    fd.append('audio', blob, 'recording.' + (mimeType.includes('ogg') ? 'ogg' : 'webm'));
-    fd.append('lang', 'am');
-    fetch('/api/ai/transcribe', { method: 'POST', body: fd })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        setStatus('');
-        var transcript = (data.transcript || '').trim();
-        if (!transcript) {
-          setStatus('ምንም ድምጽ አልተያዘም — እንደገና ይሞክሩ');
-          setTimeout(function () { setStatus(''); }, 2500);
-          return;
-        }
-        inputEl.value = transcript;
-        sendMessage();
-      }).catch(function (err) {
-        console.warn('[AI Mic AM] transcribe error:', err);
-        setStatus('⚠️ Transcription failed — try again');
-        setTimeout(function () { setStatus(''); }, 3000);
-      });
-  }
-
-  /* ── Unified startListening / stopListening ── */
-  function startListening() {
-    stopSpeaking();
-    /* Smart sync: if the panel language is Amharic but the mic pill is still
-       on English (e.g. the greeting auto-switched lang but micLang lagged),
-       silently correct it before starting recording. */
-    if (lang === 'am' && micLang !== 'am') {
-      micLang = 'am';
-      applyMicLangUI();
-    }
-    if (micLang === 'am') {
-      // Amharic: try browser Web Speech API first (free), fallback to Gemini MediaRecorder
-      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SR) {
-        startAmharicWebSpeech(SR);
-      } else if (navigator.mediaDevices && window.MediaRecorder) {
-        startAmharicRecording();
-      } else {
-        setStatus('⚠️ ' + t('micUnsupported'));
-        setTimeout(function () { setStatus(''); }, 4000);
-      }
-      return;
-    } else {
-      // English: use browser Web Speech API
-      if (navigator.permissions) {
-        navigator.permissions.query({ name: 'microphone' }).then(function (perm) {
-          if (perm.state === 'denied') {
-            setStatus('⚠️ ' + t('micDenied'));
-            setTimeout(function () { setStatus(''); }, 4000);
-            return;
-          }
-          doStartEnglishListening();
-        }).catch(function () { doStartEnglishListening(); });
-      } else {
-        doStartEnglishListening();
-      }
-    }
-  }
-
-  function doStartEnglishListening() {
-    recognition = setupWebSpeechRecognition();
-    if (!recognition) {
-      setStatus('⚠️ ' + t('micUnsupported'));
-      setTimeout(function () { setStatus(''); }, 4000);
-      return;
-    }
-    isListening = true;
-    micEl.classList.add('listening');
-    micEl.innerHTML = '⏹';
-    setStatus(t('listening'));
-    try { recognition.start(); } catch (e) {
-      console.warn('[AI Mic EN] start error:', e);
-      stopListening();
-    }
-  }
-
-  function stopListening() {
-    if (recordingTimer) { clearTimeout(recordingTimer); recordingTimer = null; }
-    // Stop Amharic MediaRecorder path
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      stopAmharicRecording();
-      return; // onstop callback finishes cleanup
-    }
-    mediaRecorder = null;
-    // Stop Web Speech path (both English and Amharic)
-    isListening = false;
-    micEl.classList.remove('listening');
-    micEl.innerHTML = '🎤';
-    /* Clear ANY listening-related status — covers both English and Amharic strings */
-    var st = statusEl.textContent || '';
-    if (st === t('listening') || st.indexOf('🎤') !== -1 || st.indexOf('እያዳምጥኩ') !== -1) {
-      setStatus('');
-    }
-    if (recognition) { try { recognition.stop(); } catch (e) {} recognition = null; }
-  }
-
-  /* ── Mic language toggle ─────────────────────── */
-  function applyMicLangUI() {
-    if (!micLangEl) return;
-    if (micLang === 'am') {
-      micLangEl.textContent = 'አማ';
-      micLangEl.classList.add('am');
-      micLangEl.title = 'Mic: Amharic — click for English';
-    } else {
-      micLangEl.textContent = 'EN';
-      micLangEl.classList.remove('am');
-      micLangEl.title = 'Mic: English — click for Amharic';
-    }
-  }
-
-  function toggleMicLang() {
-    micLang = micLang === 'am' ? 'en' : 'am';
-    applyMicLangUI();
-    if (isListening) { stopListening(); setTimeout(startListening, 200); }
-  }
-
-  applyMicLangUI();
-
   /* ── Language toggle ─────────────────────────── */
   function updateUIText() {
     langEl.textContent = t('langToggle');
@@ -1168,12 +857,11 @@
     if (hb) hb.title = t('btnTitle');
     var footer = panel.querySelector('.pa-footer span');
     if (footer) footer.textContent = '✦ ' + t('poweredBy');
+    if (voiceEl && !liveActive) voiceEl.title = t('voiceTitle');
   }
 
   function toggleLang() {
     lang = lang === 'en' ? 'am' : 'en';
-    micLang = lang;
-    applyMicLangUI();
     updateUIText();
     fetch('/api/ai/greeting/' + lang, { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : { greeting: '' }; })
@@ -1289,8 +977,8 @@
     if (!text) return;
     // Auto-detect Amharic
     if (hasAmharic(text) && lang !== 'am') {
-      lang = 'am'; micLang = 'am';
-      applyMicLangUI(); updateUIText();
+      lang = 'am';
+      updateUIText();
     }
     inputEl.value = '';
     resetInputHeight();
@@ -1457,8 +1145,6 @@
         e.stopPropagation();
         var chosen = btn.dataset.lang;
         lang = chosen;
-        micLang = chosen;
-        applyMicLangUI();
         updateUIText();
         picker.remove();
         var inputWrap2 = panel.querySelector('.pa-input-wrap');
@@ -1524,7 +1210,6 @@
     if (hb) hb.classList.remove('active');
     var mhb = document.getElementById('pa-ai-mobile-header-btn');
     if (mhb) mhb.classList.remove('active');
-    stopListening();
     stopSpeaking();
     stopLiveVoice();
   }
@@ -1536,15 +1221,25 @@
     closePanel();
   });
 
-  /* ── Gemini Live Voice (real-time WebSocket streaming) ──── */
+  /* ── Gemini Live Voice-to-Voice (real-time WebSocket streaming) ────────
+     Single voice button drives a genuine audio-in/audio-out conversation
+     with the Gemini Live API, proxied through our own /api/ai/live
+     WebSocket route (see extensions/features.js). No browser speech-to-
+     text is involved: raw mic PCM goes out, raw model PCM audio comes
+     back and is played immediately, with live transcripts logged into
+     the chat log for reference.
+  ──────────────────────────────────────────────────────────────────── */
   var liveWs = null;
   var liveStream = null;
   var liveAudioCtx = null;
   var liveProcessor = null;
   var liveSource = null;
-  var liveActive = false;
+  var liveActive = false;      // true once mic capture is live
+  var liveConnecting = false;  // true while waiting on ws + 'ready'
   var playCtx = null;
   var nextPlayAt = 0;
+  var liveUserMsgEl = null;    // in-progress user transcript bubble
+  var liveAiMsgEl = null;      // in-progress assistant transcript bubble
 
   function ab2b64(buffer) {
     var bytes = new Uint8Array(buffer), bin = '';
@@ -1581,23 +1276,74 @@
     if (liveStream)    { liveStream.getTracks().forEach(function(t){t.stop();}); liveStream = null; }
   }
 
-  function handleGeminiLiveMsg(raw) {
+  function liveTranscriptBubble(role) {
+    /* Reuses the normal message-row markup so live transcripts read like
+       any other chat message once the turn is done. */
+    var group = document.createElement('div');
+    group.className = 'pa-msg-group';
+    var row = document.createElement('div');
+    row.className = 'pa-msg-row' + (role === 'user' ? ' user' : '');
+    if (role !== 'user') row.innerHTML = '<div class="pa-msg-avatar">' + AI_AVATAR + '</div>';
+    var msgEl = document.createElement('div');
+    msgEl.className = 'pa-msg ' + (role === 'user' ? 'user' : 'ai');
+    row.appendChild(msgEl);
+    group.appendChild(row);
+    msgsEl.appendChild(group);
+    scrollToBottom();
+    return msgEl;
+  }
+
+  function handleLiveServerMsg(raw) {
     var msg; try { msg = JSON.parse(raw); } catch(e) { return; }
-    if (msg.type === 'connected') return;
-    var sc = msg.serverContent;
-    if (!sc) return;
-    if (sc.interrupted) { nextPlayAt = 0; return; }
-    var parts = (sc.modelTurn && sc.modelTurn.parts) || [];
-    var textParts = [];
-    parts.forEach(function(part) {
-      if (part.inlineData && part.inlineData.data) {
-        playPcmChunk(part.inlineData.data, part.inlineData.mimeType || 'audio/pcm;rate=24000');
+
+    if (msg.type === 'ready') {
+      liveConnecting = false;
+      liveActive = true;
+      updateVoiceButtonUI();
+      setStatus(t('liveActive'));
+      startMicCaptureLive();
+      return;
+    }
+
+    if (msg.type === 'error') {
+      console.warn('[Live] server error:', msg.message);
+      setStatus('⚠️ ' + (msg.message || t('liveFailed')));
+      stopLiveVoice();
+      setTimeout(function () { setStatus(''); }, 4000);
+      return;
+    }
+
+    if (msg.type === 'interrupted') {
+      /* Barge-in: drop any queued playback immediately so the model's
+         voice stops as soon as the visitor starts talking. */
+      nextPlayAt = 0;
+      liveAiMsgEl = null;
+      return;
+    }
+
+    if (msg.type === 'audio') {
+      playPcmChunk(msg.data, msg.mimeType);
+      return;
+    }
+
+    if (msg.type === 'transcript') {
+      if (msg.role === 'user') {
+        if (!liveUserMsgEl) liveUserMsgEl = liveTranscriptBubble('user');
+        liveUserMsgEl.textContent = (liveUserMsgEl.textContent || '') + msg.text;
+      } else {
+        if (!liveAiMsgEl) liveAiMsgEl = liveTranscriptBubble('ai');
+        liveAiMsgEl.textContent = (liveAiMsgEl.textContent || '') + msg.text;
       }
-      if (part.text) textParts.push(part.text);
-    });
-    if (textParts.length) {
-      var txt = textParts.join('').trim();
-      if (txt) { addMessage('ai', txt); messages.push({ role: 'assistant', content: txt }); }
+      scrollToBottom();
+      return;
+    }
+
+    if (msg.type === 'turnComplete') {
+      if (liveUserMsgEl && liveUserMsgEl.textContent) messages.push({ role: 'user', content: liveUserMsgEl.textContent });
+      if (liveAiMsgEl && liveAiMsgEl.textContent) messages.push({ role: 'assistant', content: liveAiMsgEl.textContent });
+      liveUserMsgEl = null;
+      liveAiMsgEl = null;
+      return;
     }
   }
 
@@ -1605,6 +1351,7 @@
     navigator.mediaDevices.getUserMedia({
       audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     }).then(function(stream) {
+      if (!liveWs || liveWs.readyState !== 1) { stream.getTracks().forEach(function(t){t.stop();}); return; }
       liveStream = stream;
       liveAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
       liveSource = liveAudioCtx.createMediaStreamSource(stream);
@@ -1626,56 +1373,83 @@
     }).catch(function(err) {
       console.error('[Live] Mic error:', err);
       setStatus('⚠️ ' + t('micDenied'));
-      setTimeout(function() { setStatus(''); }, 3000);
       stopLiveVoice();
+      setTimeout(function() { setStatus(''); }, 4000);
     });
   }
 
+  function updateVoiceButtonUI() {
+    if (!voiceEl) return;
+    voiceEl.classList.remove('connecting', 'live-active');
+    if (liveActive) {
+      voiceEl.classList.add('live-active');
+      voiceEl.innerHTML = '⏹';
+      voiceEl.title = t('stopVoiceTitle');
+    } else if (liveConnecting) {
+      voiceEl.classList.add('connecting');
+      voiceEl.innerHTML = '⏳';
+      voiceEl.title = t('stopVoiceTitle');
+    } else {
+      voiceEl.innerHTML = '🎙️';
+      voiceEl.title = t('voiceTitle');
+    }
+  }
+
   function startLiveVoice() {
-    if (liveActive) { stopLiveVoice(); return; }
+    if (liveActive || liveConnecting) { stopLiveVoice(); return; }
+    if (!('WebSocket' in window) || !navigator.mediaDevices || !window.MediaRecorder && !window.AudioContext) {
+      setStatus('⚠️ ' + t('micUnsupported'));
+      setTimeout(function () { setStatus(''); }, 4000);
+      return;
+    }
+    stopSpeaking();
+    liveConnecting = true;
+    updateVoiceButtonUI();
+    setStatus(t('liveConnecting'));
+
     var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    liveWs = new WebSocket(proto + '//' + location.host + '/api/ai/live');
+    try {
+      liveWs = new WebSocket(proto + '//' + location.host + '/api/ai/live');
+    } catch (e) {
+      console.error('[Live] WebSocket create failed:', e);
+      setStatus('⚠️ ' + t('liveFailed'));
+      liveConnecting = false;
+      updateVoiceButtonUI();
+      setTimeout(function () { setStatus(''); }, 4000);
+      return;
+    }
+
     liveWs.onopen = function() {
-      liveWs.send(JSON.stringify({
-        setup: {
-          model: 'models/gemini-2.0-flash-live-001',
-          generationConfig: {
-            responseModalities: ['AUDIO', 'TEXT'],
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } } }
-          },
-          systemInstruction: {
-            parts: [{ text: 'You are Addis, a warm and professional real estate agent for Ethio Property, a property platform in Addis Ababa, Ethiopia. Help users find properties for sale or rent. Be concise and conversational. Always respond in the same language the user speaks — support both English and Amharic.' }]
-          }
-        }
-      }));
-      setTimeout(startMicCaptureLive, 600);
+      liveWs.send(JSON.stringify({ type: 'init', lang: lang, propertyId: getCurrentPropertyId() }));
     };
-    liveWs.onmessage = function(e) { handleGeminiLiveMsg(e.data); };
+    liveWs.onmessage = function(e) { handleLiveServerMsg(e.data); };
     liveWs.onerror = function() {
-      setStatus('⚠️ Live connection failed');
-      setTimeout(function() { setStatus(''); }, 3000);
-      stopLiveVoice();
+      console.warn('[Live] socket error');
     };
     liveWs.onclose = function(e) {
-      console.log('[Live] closed:', e.code, e.reason);
-      if (liveActive) stopLiveVoice();
+      if (liveActive || liveConnecting) {
+        setStatus('⚠️ ' + t('liveFailed'));
+        setTimeout(function () { setStatus(''); }, 4000);
+      }
+      stopLiveVoice();
     };
-    liveActive = true;
-    stopListening(); stopSpeaking();
-    var liveEl = document.getElementById('pa-live');
-    if (liveEl) { liveEl.classList.add('live-active'); liveEl.innerHTML = '⏹'; liveEl.title = 'Stop live conversation'; }
-    setStatus('🔴 Live — speak naturally...');
   }
 
   function stopLiveVoice() {
+    var wasActive = liveActive || liveConnecting;
     liveActive = false;
+    liveConnecting = false;
+    liveUserMsgEl = null;
+    liveAiMsgEl = null;
     stopMicStream();
     if (liveWs) { try { liveWs.close(); } catch(e){} liveWs = null; }
     if (playCtx) { try { playCtx.close(); } catch(e){} playCtx = null; }
     nextPlayAt = 0;
-    var liveEl = document.getElementById('pa-live');
-    if (liveEl) { liveEl.classList.remove('live-active'); liveEl.innerHTML = '🎙️'; liveEl.title = 'Live voice conversation'; }
-    setStatus('');
+    updateVoiceButtonUI();
+    if (wasActive) {
+      var st = statusEl.textContent || '';
+      if (st === t('liveActive') || st === t('liveConnecting')) setStatus('');
+    }
   }
 
   /* ── Auto-grow input ────────────────────────── */
@@ -1698,11 +1472,8 @@
   inputEl.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
-  micEl.addEventListener('click', function () { isListening ? stopListening() : startListening(); });
   langEl.addEventListener('click', toggleLang);
-  if (micLangEl) micLangEl.addEventListener('click', toggleMicLang);
-  var liveEl = document.getElementById('pa-live');
-  if (liveEl) liveEl.addEventListener('click', function() { startLiveVoice(); });
+  voiceEl.addEventListener('click', function() { startLiveVoice(); });
 
   /* ── Hide on admin pages ─────────────────────── */
   function updateVisibilityForRoute() {

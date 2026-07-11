@@ -8,6 +8,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { scrypt, randomBytes } from 'crypto';
 import { promisify } from 'util';
 import { google } from 'googleapis';
+import { WebSocketServer, WebSocket as WSClient } from 'ws';
 
 const scryptAsync = promisify(scrypt);
 
@@ -1166,6 +1167,189 @@ function registerAIRoutes(app, pool) {
   });
 }
 
+/* ─── LIVE VOICE-TO-VOICE (Gemini Live API, real-time WebSocket) ─────────
+   Proxies a browser WebSocket at /api/ai/live to Google's Live API so the
+   audio never touches the client's API key. Uses the native-audio preview
+   model rather than the newer 3.1 Flash Live preview because 3.1 cannot
+   update instructions/context mid-session, which conflicts with how the
+   AI Prompt Settings admin panel needs to inject fresh listing data. */
+const LIVE_MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+const LIVE_VOICE_NAME = 'Aoede';
+const LIVE_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+
+function buildLiveSystemInstruction(basePrompt, lang) {
+  const langLine = lang === 'am'
+    ? '\n\nIMPORTANT: Speak ONLY in Amharic (አማርኛ). Never switch to English.'
+    : '\n\nIMPORTANT: Speak ONLY in English. Never switch to Amharic.';
+  const voiceLine = '\n\nYou are in a live, real-time spoken phone-style conversation, not a text chat. ' +
+    'Keep replies short and natural — 1 to 3 sentences at a time. Never use markdown, bullet points, ' +
+    'asterisks, or emoji, since everything you say is spoken aloud. Pause and let the visitor speak; ' +
+    'if they interrupt you, stop and listen.';
+  return `${basePrompt}${langLine}${voiceLine}`;
+}
+
+function registerLiveVoiceRoute(server, pool) {
+  if (!server || typeof server.on !== 'function') {
+    console.warn('[AI live] No httpServer available — /api/ai/live will not be registered.');
+    return;
+  }
+
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on('upgrade', (req, socket, head) => {
+    let pathname = '';
+    try { pathname = new URL(req.url, 'http://localhost').pathname; } catch { pathname = req.url || ''; }
+    if (pathname !== '/api/ai/live') return; // leave other upgrade listeners (e.g. Vite HMR) alone
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
+  });
+
+  wss.on('connection', (clientWs) => {
+    let upstream = null;
+    let upstreamReady = false;
+    let closed = false;
+    const pendingRealtime = [];
+
+    const sendToClient = (obj) => {
+      if (clientWs.readyState === clientWs.OPEN) {
+        try { clientWs.send(JSON.stringify(obj)); } catch {}
+      }
+    };
+
+    const teardown = () => {
+      if (closed) return;
+      closed = true;
+      if (upstream) { try { upstream.close(); } catch {} upstream = null; }
+      try { clientWs.close(); } catch {}
+    };
+
+    clientWs.on('message', async (raw) => {
+      let msg;
+      try { msg = JSON.parse(raw.toString()); } catch { return; }
+
+      if (msg.type === 'init') {
+        const apiKey = process.env.GEMINI_API_KEY || getExampleEnvValue('GEMINI_API_KEY');
+        if (!apiKey) {
+          sendToClient({ type: 'error', message: 'Live voice is not configured on the server yet.' });
+          return teardown();
+        }
+        const lang = msg.lang === 'am' ? 'am' : 'en';
+        const pidNum = Number(msg.propertyId);
+        const hasPid = Number.isInteger(pidNum) && pidNum > 0;
+
+        let basePrompt = 'You are Addis, a warm and professional real estate agent for Ethio Property, a property platform in Addis Ababa, Ethiopia.';
+        let extraBlock = '';
+        try {
+          const [promptByLang, propSummary, currentPropRes] = await Promise.all([
+            getCachedPrompts(pool),
+            hasPid ? Promise.resolve('') : getCachedPropertySummary(pool),
+            hasPid
+              ? pool.query('SELECT * FROM properties WHERE id = $1 LIMIT 1', [pidNum]).catch(() => ({ rows: [] }))
+              : Promise.resolve({ rows: [] })
+          ]);
+          basePrompt = promptByLang[lang] || promptByLang[lang === 'am' ? 'en' : 'am'] || basePrompt;
+          if (propSummary) extraBlock += `\n\nCurrent property listings:\n${propSummary}`;
+          const cp = currentPropRes.rows[0];
+          if (cp) {
+            extraBlock += `\n\nThe visitor is currently viewing property #${cp.id}: ${cp.title || ''}, ` +
+              `${cp.property_type || ''}, ${cp.status || ''}, ETB ${Number(cp.price || 0).toLocaleString()}, ` +
+              `${cp.bedrooms ?? '?'}bd/${cp.bathrooms ?? '?'}ba, ${[cp.subcity, cp.city].filter(Boolean).join(', ')}.`;
+          }
+        } catch (e) {
+          console.error('[AI live] prompt build error:', e.message);
+        }
+
+        const systemInstruction = buildLiveSystemInstruction(basePrompt + extraBlock, lang);
+
+        try {
+          upstream = new WSClient(`${LIVE_WS_URL}?key=${apiKey}`);
+        } catch (e) {
+          console.error('[AI live] failed to open upstream:', e.message);
+          sendToClient({ type: 'error', message: 'Could not start the live voice session.' });
+          return teardown();
+        }
+
+        upstream.on('open', () => {
+          upstream.send(JSON.stringify({
+            setup: {
+              model: LIVE_MODEL,
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: LIVE_VOICE_NAME } } }
+              },
+              systemInstruction: { parts: [{ text: systemInstruction }] },
+              inputAudioTranscription: {},
+              outputAudioTranscription: {}
+            }
+          }));
+        });
+
+        upstream.on('message', (data) => {
+          let obj;
+          try { obj = JSON.parse(data.toString()); } catch { return; }
+
+          if (obj.setupComplete) {
+            upstreamReady = true;
+            sendToClient({ type: 'ready' });
+            for (const m of pendingRealtime) { try { upstream.send(m); } catch {} }
+            pendingRealtime.length = 0;
+            return;
+          }
+
+          const sc = obj.serverContent;
+          if (!sc) return;
+
+          if (sc.interrupted) { sendToClient({ type: 'interrupted' }); return; }
+
+          const parts = (sc.modelTurn && sc.modelTurn.parts) || [];
+          for (const part of parts) {
+            if (part.inlineData && part.inlineData.data) {
+              sendToClient({
+                type: 'audio',
+                data: part.inlineData.data,
+                mimeType: part.inlineData.mimeType || 'audio/pcm;rate=24000'
+              });
+            }
+          }
+          if (sc.outputTranscription && sc.outputTranscription.text) {
+            sendToClient({ type: 'transcript', role: 'assistant', text: sc.outputTranscription.text });
+          }
+          if (sc.inputTranscription && sc.inputTranscription.text) {
+            sendToClient({ type: 'transcript', role: 'user', text: sc.inputTranscription.text });
+          }
+          if (sc.turnComplete) sendToClient({ type: 'turnComplete' });
+        });
+
+        upstream.on('error', (err) => {
+          console.error('[AI live] upstream error:', err.message);
+          sendToClient({ type: 'error', message: 'Live voice connection failed. You can keep typing instead.' });
+          teardown();
+        });
+
+        upstream.on('close', () => {
+          if (!closed) sendToClient({ type: 'error', message: 'Live voice session ended. You can keep typing instead.' });
+          teardown();
+        });
+
+        return;
+      }
+
+      if (msg.realtimeInput) {
+        const raw2 = JSON.stringify(msg);
+        if (upstream && upstreamReady && upstream.readyState === upstream.OPEN) {
+          try { upstream.send(raw2); } catch {}
+        } else if (upstream) {
+          pendingRealtime.push(raw2);
+        }
+      }
+    });
+
+    clientWs.on('close', teardown);
+    clientWs.on('error', teardown);
+  });
+
+  console.log('[extensions] Live voice-to-voice WebSocket route registered (/api/ai/live)');
+}
+
 /* Wrap raw PCM in a minimal WAV container the browser can play */
 function pcmToWav(pcm, sampleRate, channels, bitsPerSample) {
   const byteRate = sampleRate * channels * bitsPerSample / 8;
@@ -1190,7 +1374,7 @@ function pcmToWav(pcm, sampleRate, channels, bitsPerSample) {
 }
 
 /* ─── MAIN EXPORT ────────────────────────────────────── */
-export async function setup(app) {
+export async function setup(app, server) {
   let pool;
   try {
     const connStr = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
@@ -1200,6 +1384,7 @@ export async function setup(app) {
     registerBlogSSRRoutes(app, pool);
     registerAIRoutes(app, pool);
     registerGoogleAuthRoutes(app, pool);
+    registerLiveVoiceRoute(server, pool);
 
     // ── Google Sheets lead sync ──────────────────────────────────────────
     // Intercept /api/subscribe 201 responses (from the compiled bundle's route)
