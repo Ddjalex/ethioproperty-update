@@ -6,8 +6,9 @@
  * cluster (fixed bottom-6 right-6) or the EN/AM language toggle (top navbar).
  *
  * Visual: the uploaded circular avatar photo (ask-ai-avatar.png) instead of
- * a generic icon, plus the same "We are here" style label the Tawk.to-style
- * launcher used to show.
+ * a generic icon, with a curved "We are here!" text arcing over the top of
+ * the icon — no flat label/pill/wedge, just bold curved text directly on
+ * the page (Tawk.to-style curved greeting, applied to our own avatar icon).
  *
  * Behavior: unchanged — clicking calls window.__paAskAI(), the same toggle
  * function the old navbar buttons called, which opens/closes the existing
@@ -26,14 +27,17 @@
     style.textContent = `
       #pa-ai-fab-wrap {
         position: fixed;
-        left: 20px;
+        left: 14px;
         bottom: 24px;
+        width: 128px;
+        height: 118px;
         z-index: 9998; /* below the Ask AI panel (10001) but above page content */
-        display: flex;
-        align-items: center;
         font-family: inherit;
       }
       #pa-ai-fab-btn {
+        position: absolute;
+        left: 34px;
+        bottom: 0;
         width: 60px; height: 60px;
         border-radius: 50%;
         border: none;
@@ -64,35 +68,45 @@
         from { transform: scale(0.6); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
       }
-      #pa-ai-fab-label {
-        background: #fff;
-        color: #0f172a;
-        font-size: 14px;
-        font-weight: 800;
-        padding: 10px 16px 10px 24px;
-        margin-left: -18px;
-        border-radius: 0 999px 999px 0;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.16);
-        white-space: nowrap;
-        position: relative;
-        z-index: 1;
+      #pa-ai-fab-curve {
+        position: absolute;
+        top: 0; left: 0;
+        width: 128px; height: 118px;
+        pointer-events: none;
         animation: pa-fab-label-in 0.4s ease 0.2s both;
       }
+      #pa-ai-fab-curve text {
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        fill: #0f4c3c;
+        paint-order: stroke fill;
+        stroke: #fff;
+        stroke-width: 4px;
+        stroke-linejoin: round;
+      }
       @keyframes pa-fab-label-in {
-        from { opacity: 0; transform: translateX(-6px); }
-        to { opacity: 1; transform: translateX(0); }
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
       }
-      #pa-ai-fab-label .pa-fab-dot {
-        display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-        background: #4ade80; margin-right: 7px;
-        box-shadow: 0 0 0 2px rgba(74,222,128,0.35);
+      #pa-ai-fab-dot {
+        position: absolute;
+        left: 86px;
+        bottom: 46px;
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        background: #4ade80;
+        box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(74,222,128,0.35);
+        z-index: 1;
       }
-      /* On narrow screens, drop the text label and keep just the avatar so
+      /* On narrow screens, drop the curved text and keep just the avatar so
          it never competes for space with page content. */
       @media (max-width: 480px) {
-        #pa-ai-fab-wrap { left: 14px; bottom: 18px; }
-        #pa-ai-fab-btn { width: 54px; height: 54px; }
-        #pa-ai-fab-label { display: none; }
+        #pa-ai-fab-wrap { left: 14px; bottom: 18px; width: 60px; height: 60px; }
+        #pa-ai-fab-btn { left: 0; width: 54px; height: 54px; }
+        #pa-ai-fab-curve { display: none; }
+        #pa-ai-fab-dot { left: 40px; bottom: 40px; }
       }
       /* Hide the launcher while the Ask AI panel itself is open, and on
          admin pages (matches prior header-button behavior). */
@@ -101,9 +115,23 @@
     document.head.appendChild(style);
   }
 
+  // Curved-text greeting arcing over the top of the avatar icon, Tawk.to
+  // style — an SVG <textPath> along a circular arc, no background pill.
+  var CURVE_SVG =
+    '<svg id="pa-ai-fab-curve" viewBox="0 0 128 118" xmlns="http://www.w3.org/2000/svg">' +
+      '<path id="pa-ai-fab-arc" d="M 6,96 A 58,58 0 0 1 122,96" fill="none"/>' +
+      '<text><textPath href="#pa-ai-fab-arc" startOffset="50%" text-anchor="middle">We are here!</textPath></text>' +
+    '</svg>';
+
   function buildFab() {
     var wrap = document.createElement('div');
     wrap.id = 'pa-ai-fab-wrap';
+
+    wrap.insertAdjacentHTML('afterbegin', CURVE_SVG);
+
+    var dot = document.createElement('div');
+    dot.id = 'pa-ai-fab-dot';
+    wrap.appendChild(dot);
 
     var btn = document.createElement('button');
     btn.type = 'button';
@@ -121,12 +149,7 @@
       if (typeof window.__paAskAI === 'function') window.__paAskAI();
     });
 
-    var label = document.createElement('div');
-    label.id = 'pa-ai-fab-label';
-    label.innerHTML = '<span class="pa-fab-dot"></span>We are here';
-
     wrap.appendChild(btn);
-    wrap.appendChild(label);
     return wrap;
   }
 
