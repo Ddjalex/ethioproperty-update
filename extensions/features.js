@@ -7,6 +7,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { scrypt, randomBytes } from 'crypto';
 import { promisify } from 'util';
+import { google } from 'googleapis';
 
 const scryptAsync = promisify(scrypt);
 
@@ -48,6 +49,83 @@ function getExampleEnvValue(key) {
 function formatDate(d) {
   if (!d) return '';
   return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+/* ─── GOOGLE SHEETS LEAD SYNC ────────────────────────────────────────────
+   Appends a single lead row to the configured Sheet. Fire-and-forget;
+   never throws — caller must .catch() if it wants to log errors.          */
+
+function buildSheetsAuth() {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  let key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '';
+  // Env vars sometimes store literal \n instead of real newlines
+  if (key && !key.includes('\n')) {
+    key = key.replace(/\\n/g, '\n');
+  }
+  if (!email || !key) return null;
+  return new google.auth.JWT({
+    email,
+    key,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+}
+
+async function appendLeadToSheets(name, phone, email, source) {
+  const auth = buildSheetsAuth();
+  if (!auth) {
+    console.warn('[Sheets] Skipping — GOOGLE_SERVICE_ACCOUNT_EMAIL / GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY not set');
+    return;
+  }
+  const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+  if (!spreadsheetId) {
+    console.warn('[Sheets] Skipping — GOOGLE_SHEETS_ID not set');
+    return;
+  }
+  const date = new Date().toLocaleString('en-US', { timeZone: 'Africa/Addis_Ababa' });
+  const sheets = google.sheets({ version: 'v4', auth });
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: 'Sheet1!A:E',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: {
+      values: [[name || '', phone || '', email || '', source || '', date]],
+    },
+  });
+  console.log(`[Sheets] Lead appended — ${source}: ${name} <${email}>`);
+}
+
+/* Splices a res.json() interceptor BEFORE the /api/subscribe route in
+   Express's internal stack so we catch 201 responses without touching
+   the compiled bundle. */
+function installSubscribeInterceptor(app) {
+  const interceptorFn = (req, res, next) => {
+    if (req.method !== 'POST' || req.path !== '/api/subscribe') return next();
+    const origJson = res.json.bind(res);
+    res.json = function (body) {
+      if (res.statusCode === 201 && body && body.subscriber) {
+        const s = body.subscriber;
+        appendLeadToSheets(s.name || 'Website Visitor', s.phone || '', s.email || '', 'Website Popup')
+          .catch(e => console.error('[Sheets] Subscribe sync error:', e.message));
+      }
+      return origJson.call(this, body);
+    };
+    next();
+  };
+
+  // Register via app.use() so Express creates a proper Layer object for us
+  app.use(interceptorFn);
+
+  // Move that layer from the end of the stack to just after the built-in
+  // query-parser / init layers (positions 0-1), so it fires before the
+  // bundle's /api/subscribe route handler.
+  const stack = app._router && app._router.stack;
+  if (stack && stack.length > 2) {
+    const layer = stack.pop();
+    stack.splice(2, 0, layer);
+    console.log('[Sheets] Subscribe response interceptor installed');
+  } else {
+    console.warn('[Sheets] Could not reposition interceptor — stack not accessible');
+  }
 }
 
 /* ─── SSR page shell (uses this project's own Ethio Property branding) ─── */
@@ -1122,6 +1200,23 @@ export async function setup(app) {
     registerBlogSSRRoutes(app, pool);
     registerAIRoutes(app, pool);
     registerGoogleAuthRoutes(app, pool);
+
+    // ── Google Sheets lead sync ──────────────────────────────────────────
+    // Intercept /api/subscribe 201 responses (from the compiled bundle's route)
+    installSubscribeInterceptor(app);
+
+    // Manual/test endpoint — POST { name, phone, email, source }
+    app.post('/api/sheets-lead', async (req, res) => {
+      try {
+        const { name, phone, email, source } = req.body || {};
+        await appendLeadToSheets(name || '', phone || '', email || '', source || 'Manual');
+        res.json({ ok: true });
+      } catch (e) {
+        console.error('[Sheets] /api/sheets-lead error:', e.message);
+        res.status(500).json({ ok: false, error: e.message });
+      }
+    });
+
     console.log('[extensions] All features registered successfully');
   } catch (err) {
     console.error('[extensions] Setup error:', err.message);
