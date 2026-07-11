@@ -394,6 +394,37 @@
     }
     .pa-chip:hover { background: #eef2ff; border-color: #818cf8; transform: translateY(-1px); }
 
+    /* ── AI Contact Capture Card ── */
+    .pa-contact-card {
+      background: linear-gradient(135deg,#f0fdf4,#ecfdf5);
+      border: 1.5px solid #6ee7b7;
+      border-radius: 16px; padding: 16px; margin: 4px 0;
+    }
+    .pa-contact-card-title { font-size: 13px; font-weight: 700; color: #065f46; margin-bottom: 4px; }
+    .pa-contact-card-sub { font-size: 11.5px; color: #047857; margin-bottom: 10px; line-height: 1.4; }
+    .pa-contact-card input {
+      width: 100%; border: 1.5px solid #a7f3d0; border-radius: 8px;
+      padding: 8px 10px; font-size: 13px; font-family: inherit;
+      outline: none; margin-bottom: 7px; background: #fff;
+      transition: border-color 0.15s; box-sizing: border-box;
+    }
+    .pa-contact-card input:focus { border-color: #34d399; }
+    .pa-contact-card-submit {
+      width: 100%; padding: 9px; border-radius: 9px;
+      background: linear-gradient(135deg,#059669,#10b981);
+      color: #fff; border: none; font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: inherit; margin-top: 2px;
+      transition: opacity 0.15s;
+    }
+    .pa-contact-card-submit:hover { opacity: 0.9; }
+    .pa-contact-card-skip {
+      display: block; text-align: center; font-size: 11px;
+      color: #6b7280; cursor: pointer; margin-top: 8px;
+      background: none; border: none; font-family: inherit; width: 100%;
+    }
+    .pa-contact-card-skip:hover { color: #374151; text-decoration: underline; }
+    .pa-contact-card-success { font-size: 13px; color: #065f46; text-align: center; font-weight: 600; padding: 4px 0; }
+
     /* ── Language Picker ── */
     #pa-lang-picker {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -592,6 +623,11 @@
     am: ['አፓርታማ አሳየኝ', 'የዋጋ ክልል ምንድን ነው?', 'ለመጎብኘት ቀጠሮ ያዙ']
   };
 
+  /* ── AI contact capture state ── */
+  var aiReplyCount = 0;
+  var contactCardShown = !!localStorage.getItem('pa_contact_captured_v1');
+  var CONTACT_CARD_AFTER = 3;
+
   function removeQuickReplies() {
     var el = document.getElementById('pa-quick-replies');
     if (el) el.remove();
@@ -616,6 +652,88 @@
       wrap.appendChild(chip);
     });
     msgsEl.appendChild(wrap);
+    scrollToBottom();
+
+    // Count AI replies and show contact card after threshold
+    aiReplyCount++;
+    if (aiReplyCount >= CONTACT_CARD_AFTER && !contactCardShown && !document.getElementById('pa-contact-card')) {
+      setTimeout(showContactCapture, 400);
+    }
+  }
+
+  function showContactCapture() {
+    if (contactCardShown || document.getElementById('pa-contact-card')) return;
+    contactCardShown = true;
+    var isAm = lang === 'am';
+    var card = document.createElement('div');
+    card.className = 'pa-contact-card';
+    card.id = 'pa-contact-card';
+
+    var titleEl = document.createElement('div');
+    titleEl.className = 'pa-contact-card-title';
+    titleEl.textContent = isAm ? '📩 ዝርዝሮች ለማግኘት ይፈልጋሉ?' : '📩 Want us to send you matching listings?';
+
+    var subEl = document.createElement('div');
+    subEl.className = 'pa-contact-card-sub';
+    subEl.textContent = isAm
+      ? 'ስምዎን እና ስልክ ቁጥርዎን ያስቀምጡ — ተስማሚ ቤቶችን እናሳውቅዎ።'
+      : "Drop your name & phone — we'll reach out with properties that fit.";
+
+    var nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = isAm ? 'ሙሉ ስም' : 'Your name';
+    nameInput.maxLength = 80;
+
+    var phoneInput = document.createElement('input');
+    phoneInput.type = 'tel';
+    phoneInput.placeholder = isAm ? 'ስልክ ቁጥር (+251...)' : 'Phone number (+251...)';
+    phoneInput.maxLength = 20;
+
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'pa-contact-card-submit';
+    submitBtn.textContent = isAm ? 'ላኩ ✓' : 'Send ✓';
+
+    var skipBtn = document.createElement('button');
+    skipBtn.type = 'button';
+    skipBtn.className = 'pa-contact-card-skip';
+    skipBtn.textContent = isAm ? 'አሁን ላይ ይቅር' : 'Maybe later';
+
+    card.appendChild(titleEl);
+    card.appendChild(subEl);
+    card.appendChild(nameInput);
+    card.appendChild(phoneInput);
+    card.appendChild(submitBtn);
+    card.appendChild(skipBtn);
+
+    skipBtn.addEventListener('click', function () { card.remove(); });
+
+    submitBtn.addEventListener('click', function () {
+      var name = nameInput.value.trim();
+      var phone = phoneInput.value.trim();
+      if (!name && !phone) { nameInput.focus(); return; }
+
+      localStorage.setItem('pa_contact_captured_v1', '1');
+
+      card.innerHTML = '<div class="pa-contact-card-success">' +
+        (isAm ? '✅ አመሰግናለን! በቅርቡ እናነጋግርዎ።' : '✅ Thank you! We\'ll be in touch soon.') +
+        '</div>';
+      setTimeout(function () { if (card.parentNode) card.remove(); }, 2500);
+
+      // Fire-and-forget — never blocks the chat
+      fetch('/api/sheets-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name || 'AI Chat Visitor',
+          phone: phone || '',
+          email: '',
+          source: 'Ask AI Chat'
+        })
+      }).catch(function (e) { console.warn('[AI Contact] Sheets sync failed:', e.message); });
+    });
+
+    msgsEl.appendChild(card);
     scrollToBottom();
   }
 
