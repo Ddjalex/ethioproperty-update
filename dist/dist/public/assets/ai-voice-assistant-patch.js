@@ -74,22 +74,21 @@
     /* ── Panel ── */
     #pa-ai-panel {
       position: fixed;
-      top: 72px; right: 18px;
+      left: 20px; bottom: 96px;
+      top: 24px;
       width: 390px;
-      bottom: 24px;
-      max-height: calc(100vh - 96px);
+      max-height: calc(100vh - 132px);
       background: #ffffff;
       border-radius: 24px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(99,102,241,0.12);
       display: flex; flex-direction: column;
       z-index: 10001; overflow: hidden;
-      transform: scale(0.92) translateY(-16px);
+      transform: scale(0.92) translateY(16px);
       opacity: 0; pointer-events: none;
       transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1);
-      transform-origin: top right;
+      transform-origin: bottom left;
       border: 1px solid rgba(99,102,241,0.12);
     }
-    body.pa-ai-open #pa-fab-wrap { display: none !important; }
     #pa-ai-panel.open {
       transform: scale(1) translateY(0);
       opacity: 1; pointer-events: all;
@@ -370,7 +369,7 @@
 
     /* ── Mobile ── */
     @media (max-width: 480px) {
-      #pa-ai-panel { width: calc(100vw - 20px); right: 10px; top: 62px; border-radius: 20px; }
+      #pa-ai-panel { width: calc(100vw - 20px); left: 10px; bottom: 82px; top: 16px; border-radius: 20px; }
     }
 
     /* ── Welcome card ── */
