@@ -100,13 +100,16 @@
         box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(74,222,128,0.35);
         z-index: 1;
       }
-      /* On narrow screens, drop the curved text and keep just the avatar so
-         it never competes for space with page content. */
+      /* On narrow screens, shrink the whole badge (icon + curved text)
+         proportionally instead of hiding the text, so it still fits
+         without overlapping page content. */
       @media (max-width: 480px) {
-        #pa-ai-fab-wrap { left: 14px; bottom: 18px; width: 60px; height: 60px; }
-        #pa-ai-fab-btn { left: 0; width: 54px; height: 54px; }
-        #pa-ai-fab-curve { display: none; }
-        #pa-ai-fab-dot { left: 40px; bottom: 40px; }
+        #pa-ai-fab-wrap {
+          left: 6px;
+          bottom: 14px;
+          transform: scale(0.72);
+          transform-origin: bottom left;
+        }
       }
       /* Hide the launcher while the Ask AI panel itself is open, and on
          admin pages (matches prior header-button behavior). */
