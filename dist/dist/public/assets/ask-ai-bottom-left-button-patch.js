@@ -31,7 +31,6 @@
         z-index: 9998; /* below the Ask AI panel (10001) but above page content */
         display: flex;
         align-items: center;
-        gap: 10px;
         font-family: inherit;
       }
       #pa-ai-fab-btn {
@@ -67,13 +66,16 @@
       }
       #pa-ai-fab-label {
         background: #fff;
-        color: #1e293b;
-        font-size: 13px;
-        font-weight: 600;
-        padding: 8px 14px;
-        border-radius: 14px;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+        color: #0f172a;
+        font-size: 14px;
+        font-weight: 800;
+        padding: 10px 16px 10px 24px;
+        margin-left: -18px;
+        border-radius: 0 999px 999px 0;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.16);
         white-space: nowrap;
+        position: relative;
+        z-index: 1;
         animation: pa-fab-label-in 0.4s ease 0.2s both;
       }
       @keyframes pa-fab-label-in {
@@ -81,9 +83,9 @@
         to { opacity: 1; transform: translateX(0); }
       }
       #pa-ai-fab-label .pa-fab-dot {
-        display: inline-block; width: 7px; height: 7px; border-radius: 50%;
-        background: #4ade80; margin-right: 6px;
-        box-shadow: 0 0 0 2px rgba(74,222,128,0.3);
+        display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+        background: #4ade80; margin-right: 7px;
+        box-shadow: 0 0 0 2px rgba(74,222,128,0.35);
       }
       /* On narrow screens, drop the text label and keep just the avatar so
          it never competes for space with page content. */
