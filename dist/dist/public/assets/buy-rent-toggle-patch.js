@@ -37,9 +37,49 @@
     if (text && text.trim()) params.set('search', text.trim());
     params.set('status', MODE === 'rent' ? 'For Rent' : 'For Sale');
     var url = '/properties?' + params.toString();
+    showTransitionOverlay();
     window.history.pushState({}, '', url);
     window.dispatchEvent(new Event('locationchange'));
     window.dispatchEvent(new PopStateEvent('popstate'));
+  }
+
+  /* Brief dim + spinner over the search bar so a Buy/Rent click gives instant
+     visual feedback while the properties page mounts and fetches results
+     (that page shows its own skeleton once it takes over). */
+  var _overlayHideTimer = null;
+  function showTransitionOverlay() {
+    var wrap = document.getElementById('pa-buy-rent-toggle');
+    var input = document.querySelector('input[placeholder*="Search by city"]');
+    var searchOuter = input ? input.closest('.relative.w-full.max-w-2xl.mx-auto') : null;
+    if (!wrap || !searchOuter) return;
+    var overlay = document.getElementById('pa-brt-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'pa-brt-overlay';
+      overlay.style.cssText = [
+        'position:absolute;inset:0;z-index:5;border-radius:12px;',
+        'background:rgba(255,255,255,0.55);display:flex;align-items:center;justify-content:center;',
+        'transition:opacity .15s ease;opacity:0;pointer-events:none;'
+      ].join('');
+      var spinner = document.createElement('div');
+      spinner.style.cssText = 'width:26px;height:26px;border-radius:50%;border:3px solid rgba(15,23,41,0.25);border-top-color:#0F1729;animation:pa-brt-spin .7s linear infinite;';
+      overlay.appendChild(spinner);
+      if (!document.getElementById('pa-brt-spin-kf')) {
+        var style = document.createElement('style');
+        style.id = 'pa-brt-spin-kf';
+        style.textContent = '@keyframes pa-brt-spin{to{transform:rotate(360deg);}}';
+        document.head.appendChild(style);
+      }
+      var host = wrap.parentElement;
+      if (host && getComputedStyle(host).position === 'static') host.style.position = 'relative';
+      if (host) host.appendChild(overlay);
+    }
+    overlay.style.opacity = '1';
+    clearTimeout(_overlayHideTimer);
+    _overlayHideTimer = setTimeout(function () {
+      var el = document.getElementById('pa-brt-overlay');
+      if (el) el.style.opacity = '0';
+    }, 900);
   }
 
   function hijackSearchBar() {
@@ -96,10 +136,12 @@
     document.getElementById('pa-brt-buy').addEventListener('click', function () {
       MODE = 'buy';
       updateToggleUI();
+      doSearch();
     });
     document.getElementById('pa-brt-rent').addEventListener('click', function () {
       MODE = 'rent';
       updateToggleUI();
+      doSearch();
     });
 
     updateToggleUI();
