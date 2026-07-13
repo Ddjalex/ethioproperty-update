@@ -11,15 +11,23 @@
   var WA_URL = 'https://wa.me/251952000777';
   var PATCH_ID = 'ethio-whatsapp-header-btn';
 
-  // Inject responsive CSS: hide phone text on small screens (icon-only pill)
+  // Inject responsive CSS: on small screens hide the icon, shrink to number-only compact pill
   (function injectStyle() {
     if (document.getElementById('ethio-wa-style')) return;
     var s = document.createElement('style');
     s.id = 'ethio-wa-style';
     s.textContent = [
       '@media (max-width: 600px) {',
-      '  #' + PATCH_ID + ' .wa-num { display: none !important; }',
-      '  #' + PATCH_ID + ' { padding: 7px 9px !important; gap: 0 !important; }',
+      '  #' + PATCH_ID + ' .wa-icon { display: none !important; }',
+      '  #' + PATCH_ID + ' {',
+      '    padding: 5px 9px !important;',
+      '    font-size: 11.5px !important;',
+      '    gap: 0 !important;',
+      '    background: #ffffff !important;',
+      '    color: #1a8f3e !important;',
+      '    border: 1.5px solid #25D366 !important;',
+      '    box-shadow: none !important;',
+      '  }',
       '}'
     ].join('\n');
     (document.head || document.documentElement).appendChild(s);
@@ -55,6 +63,7 @@
 
     // WhatsApp SVG icon
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'wa-icon');
     svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     svg.setAttribute('viewBox', '0 0 24 24');
     svg.setAttribute('width', '18');
