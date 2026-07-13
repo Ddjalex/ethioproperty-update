@@ -1169,9 +1169,6 @@
         picker.remove();
         var inputWrap2 = panel.querySelector('.pa-input-wrap');
         if (inputWrap2) inputWrap2.style.display = '';
-        /* Start the live voice session immediately — the WebSocket was
-           pre-warmed when the panel opened so there is no extra wait. */
-        autoStartLiveVoice();
         startConversation();
       });
     });
