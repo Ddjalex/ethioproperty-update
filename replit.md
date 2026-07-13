@@ -38,7 +38,7 @@ A real-estate listing site for Addis Ababa, Ethiopia ("EthioProperty" / "Prime A
 - Neon DB confirmed connected: `ep-delicate-term-aecpdauf-pooler.c-2.us-east-2.aws.neon.tech` — homepage loads successfully, 64 properties render.
 - Note: the `NEON_DATABASE_URL` secret also does not carry over on a fresh import/checkout and must be re-entered by the user each time (re-confirmed working July 11, 2026).
 - Known issue: admin password is reset to `admin123` on every boot (see Database section).
-- Known cosmetic issue: `ask-ai-bottom-left-button-patch.js` throws a `Cannot read properties of null (reading 'appendChild')` console error on load; pre-existing, does not affect functionality.
+- Fixed (July 13, 2026): `ask-ai-bottom-left-button-patch.js` no longer throws `Cannot read properties of null (reading 'appendChild')` — added a `if (!document.body) return` guard in the `inject()` function so the MutationObserver firing before `<body>` exists is handled safely.
 - Re-imported and re-verified running July 11, 2026: `npm install`, `NEON_DATABASE_URL` re-entered, workflow restarted, homepage confirmed loading 64 properties against the real Neon DB.
 - `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` secrets were added this session. Google OAuth routes are now registered and active (`/auth/google`, `/auth/google/callback`) — confirmed in startup logs.
 

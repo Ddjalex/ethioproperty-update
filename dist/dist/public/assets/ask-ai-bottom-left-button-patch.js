@@ -169,6 +169,7 @@
       updateVisibilityForRoute();
       return;
     }
+    if (!document.body) return;
     document.body.appendChild(buildFab());
     updateVisibilityForRoute();
   }
