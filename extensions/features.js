@@ -556,12 +556,26 @@ const SUBCITY_ALIASES = {
   arada: 'Arada', lideta: 'Lideta', gulele: 'Gulele',
   'akaki': 'Akaki Kality', 'akaki kality': 'Akaki Kality', kality: 'Akaki Kality',
   'addis ketema': 'Addis Ketema', lemi: 'Lemi Kura', 'lemi kura': 'Lemi Kura',
-  // popular neighbourhood names
+  // Official subcity name variants
+  'nifas': 'Nifas Silk Lafto', 'silk lafto': 'Nifas Silk Lafto',
+  // Popular neighbourhood names → canonical subcity
   'old airport': 'Bole', 'bole road': 'Bole', 'sarbet': 'Nifas Silk Lafto',
-  'megenagna': 'Yeka', 'kazanchis': 'Kirkos', 'mexico': 'Kirkos',
-  'piassa': 'Arada', 'arat kilo': 'Arada', 'semen': 'Gulele',
+  'megenagna': 'Yeka', 'megenanya': 'Yeka', 'kazanchis': 'Kirkos', 'mexico': 'Kirkos',
+  'piassa': 'Arada', 'piyassa': 'Arada', 'arat kilo': 'Arada', 'semen': 'Gulele',
   '4 kilo': 'Arada', '4kilo': 'Arada', 'kera': 'Lideta',
-  'summit': 'Bole', 'hayahulet': 'Bole', '22': 'Bole',
+  'hayahulet': 'Bole', '22': 'Bole',
+  // Actual address values stored in DB
+  'cmc': 'Lemi Kura', 'cmc figa': 'Lemi Kura',
+  'summit': 'Lemi Kura', 'summit 72': 'Lemi Kura', 'semit': 'Lemi Kura',
+  'semit 72': 'Lemi Kura', 'semit figa': 'Lemi Kura', 'semit giorgis': 'Lemi Kura',
+  'gofa': 'Nifas Silk Lafto', 'jemo': 'Nifas Silk Lafto',
+  'ayat': 'Yeka', 'ayat zone 2': 'Yeka',
+  'bole bulbula': 'Bole', 'bole dembel': 'Bole', 'bole gazebo': 'Bole',
+  'bole peacock': 'Bole', 'bole edna': 'Bole', 'bole sheger': 'Bole',
+  'bole millennium': 'Bole', 'millennium': 'Bole',
+  'bisrate': 'Bole', 'bisrate gebriel': 'Bole',
+  'bulgaria': 'Bole', 'bulgary': 'Bole',
+  'alemgena': 'Akaki Kality',
 };
 
 const PROPERTY_TYPE_ALIASES = {
@@ -668,8 +682,8 @@ async function queryMatchingProperties(pool, criteria) {
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const sql = `
-    SELECT id, title, price, city, subcity, bedrooms, bathrooms,
-           property_type, status, address
+    SELECT id, title, price, city, subcity, address, bedrooms, bathrooms,
+           property_type, status
     FROM properties
     ${where}
     ORDER BY is_featured DESC, created_at DESC
@@ -704,13 +718,15 @@ async function queryMatchingProperties(pool, criteria) {
       ).catch(() => ({ rows: [] }));
       if (!looseRows.length) return null;
       return `(Relaxed criteria — closest available matches)\n` +
-        looseRows.map(p =>
-          `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${[p.subcity, p.city].filter(Boolean).join(', ')} | ${p.bedrooms}bd ${p.bathrooms}ba | View: /properties/${p.id}`
-        ).join('\n');
+        looseRows.map(p => {
+          const loc = [p.address, p.subcity, p.city].filter(Boolean).join(', ');
+          return `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${loc} | ${p.bedrooms}bd ${p.bathrooms}ba | View: /properties/${p.id}`;
+        }).join('\n');
     }
-    return rows.map(p =>
-      `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${[p.subcity, p.city].filter(Boolean).join(', ')} | ${p.bedrooms}bd ${p.bathrooms}ba | View: /properties/${p.id}`
-    ).join('\n');
+    return rows.map(p => {
+      const loc = [p.address, p.subcity, p.city].filter(Boolean).join(', ');
+      return `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${loc} | ${p.bedrooms}bd ${p.bathrooms}ba | View: /properties/${p.id}`;
+    }).join('\n');
   } catch (e) {
     console.error('[AI search] query error:', e.message);
     return null;
@@ -734,13 +750,14 @@ async function getCachedPropertySummary(pool) {
   const now = Date.now();
   if (AI_PROPS_CACHE.value && now < AI_PROPS_CACHE.expires) return AI_PROPS_CACHE.value;
   const { rows } = await pool.query(
-    `SELECT id, title, price, city, subcity, bedrooms, bathrooms, property_type, status
+    `SELECT id, title, price, city, subcity, address, bedrooms, bathrooms, property_type, status
      FROM properties ORDER BY is_featured DESC, created_at DESC LIMIT 30`
   ).catch(() => ({ rows: [] }));
   const summary = rows.length
-    ? rows.map(p =>
-        `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${[p.subcity, p.city].filter(Boolean).join(', ')} | ${p.bedrooms}bd ${p.bathrooms}ba`
-      ).join('\n')
+    ? rows.map(p => {
+        const loc = [p.address, p.subcity, p.city].filter(Boolean).join(', ');
+        return `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${loc} | ${p.bedrooms}bd ${p.bathrooms}ba`;
+      }).join('\n')
     : '(No properties listed yet)';
   AI_PROPS_CACHE.value = summary;
   AI_PROPS_CACHE.expires = now + AI_CACHE_TTL_MS;

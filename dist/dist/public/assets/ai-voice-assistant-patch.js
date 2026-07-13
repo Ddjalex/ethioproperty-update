@@ -911,7 +911,16 @@
      Parses user voice input for property search criteria and
      updates the property listing page filters automatically.
   ─────────────────────────────────────────────────────────── */
-  var SUBCITIES = ['bole','kirkos','yeka','nifas silk lafto','kolfe keranio','gulele','lideta','akaki kality','arada','addis ketema'];
+  var SUBCITIES = [
+    // Official subcities
+    'bole','kirkos','yeka','nifas silk lafto','kolfe keranio','gulele','lideta','akaki kality','arada','addis ketema','lemi kura',
+    // Actual neighbourhood addresses stored in DB
+    'cmc','cmc figa','gofa','jemo','ayat','ayat zone 2',
+    'summit','summit 72','semit','semit 72','semit figa','semit giorgis',
+    'bole bulbula','bole dembel','bole gazebo','bole peacock','bole edna','bole sheger','bole millennium',
+    'megenagna','megenanya','kazanchis','sarbet','bisrate gebriel','bisrate',
+    'bulgaria','alemgena','piassa','piyassa','hayahulet','old airport','kera','mexico'
+  ];
   var PROP_TYPES = { apartment:'Apartment', villa:'Villa', house:'House', commercial:'Commercial', office:'Office', land:'Land', studio:'Studio' };
 
   function extractFilters(text) {
