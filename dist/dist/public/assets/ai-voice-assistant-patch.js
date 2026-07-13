@@ -813,12 +813,21 @@
   function speakWithGemini(text) {
     if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
     var isAm = hasAmharic(text);
+
+    /* Gemini TTS models do not support Amharic (am-ET): they accept the
+       request silently but render Amharic script with English phonology.
+       Route Amharic text directly to the browser's built-in speech synthesis
+       (SpeechSynthesisUtterance with lang='am-ET') which has native Amharic
+       support on Android/Chrome via the on-device TTS engine. */
+    if (isAm) {
+      speakWithBrowser(text, 'am-ET', 0.9);
+      return;
+    }
+
     isSpeaking = true;
-    /* Only fallback is the browser's own built-in speech synthesis — never
-       an external TTS provider. Gemini gets a longer timeout for Amharic
-       since that voice path is slower than English. */
+    /* English path: Gemini TTS with browser synthesis as fallback. */
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, isAm ? 6000 : 2000) : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 2000) : null;
     fetch('/api/ai/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -837,9 +846,9 @@
       audio.play().catch(function () { isSpeaking = false; setStatus(''); });
     }).catch(function (err) {
       if (timer) clearTimeout(timer);
-      console.warn('[AI voice] Gemini TTS failed, falling back to the browser voice:', err);
+      console.warn('[AI voice] Gemini TTS failed, falling back to browser voice:', err);
       isSpeaking = false;
-      speakWithBrowser(text, isAm ? 'am' : 'en', isAm ? 0.9 : 1);
+      speakWithBrowser(text, 'en-US', 1);
     });
   }
 

@@ -635,14 +635,16 @@ export function registerAIRoutes(app, pool) {
       }
 
       const ttsPrompt = isAmharic
-        ? `Speak warmly, naturally and clearly in Amharic (am-ET) with a professional tone: ${cleanText}`
+        ? `Speak warmly, naturally and clearly in Amharic with a professional tone: ${cleanText}`
         : `Speak in a deep, professional, confident voice: ${cleanText}`;
+      // Note: Gemini TTS only handles English reliably here; Amharic TTS is
+      // handled client-side via SpeechSynthesisUtterance(lang='am-ET').
       const requestBody = {
         contents: [{ parts: [{ text: ttsPrompt }] }],
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {
-            languageCode: isAmharic ? 'am-ET' : 'en-US',
+            languageCode: 'en-US',
             voiceConfig: { prebuiltVoiceConfig: { voiceName } }
           }
         }
