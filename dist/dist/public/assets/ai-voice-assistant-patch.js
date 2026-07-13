@@ -13,7 +13,7 @@
   var synthesis = window.speechSynthesis;
   var currentUtterance = null;
   var currentAudio = null;
-  var sessionVoice = null; // locked TTS for session: 'gemini' | 'google' | null
+  var sessionVoice = localStorage.getItem('pa_tts_voice') || null; // persisted: 'gemini'|'google'|null
   var langPickerShown = false;
 
   var T = {
@@ -831,15 +831,22 @@
     if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
     var isAm = hasAmharic(text);
     isSpeaking = true;
+    /* 5-second timeout so a failing Gemini TTS endpoint doesn't make the
+       visitor wait 30-60 s before the greeting appears. */
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 5000) : null;
     fetch('/api/ai/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text, voice: 'Aoede' })
+      body: JSON.stringify({ text: text, voice: 'Aoede' }),
+      signal: ctrl ? ctrl.signal : undefined
     }).then(function (r) {
+      if (timer) clearTimeout(timer);
       if (!r.ok) throw new Error('tts ' + r.status);
       return r.blob();
     }).then(function (blob) {
-      sessionVoice = 'gemini'; // confirmed working — lock for this session
+      sessionVoice = 'gemini';
+      localStorage.setItem('pa_tts_voice', 'gemini'); // persist for next session
       var url = URL.createObjectURL(blob);
       var audio = new Audio(url);
       currentAudio = audio;
@@ -847,9 +854,11 @@
       audio.onerror = function () { isSpeaking = false; setStatus(''); URL.revokeObjectURL(url); currentAudio = null; };
       audio.play().catch(function () { isSpeaking = false; setStatus(''); });
     }).catch(function (err) {
+      if (timer) clearTimeout(timer);
       console.warn('[AI voice] Gemini TTS failed, locking to Google TTS:', err);
       isSpeaking = false;
-      sessionVoice = 'google'; // lock to Google for rest of session
+      sessionVoice = 'google';
+      localStorage.setItem('pa_tts_voice', 'google'); // persist — skip Gemini next time
       speakWithGoogleTranslate(text, isAm ? 'am' : 'en');
     });
   }
