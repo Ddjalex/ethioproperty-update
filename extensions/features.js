@@ -1186,11 +1186,13 @@ function registerAIRoutes(app, pool) {
 
 /* ─── LIVE VOICE-TO-VOICE (Gemini Live API, real-time WebSocket) ─────────
    Proxies a browser WebSocket at /api/ai/live to Google's Live API so the
-   audio never touches the client's API key. Uses the native-audio preview
-   model rather than the newer 3.1 Flash Live preview because 3.1 cannot
-   update instructions/context mid-session, which conflicts with how the
-   AI Prompt Settings admin panel needs to inject fresh listing data. */
-const LIVE_MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+   audio never touches the client's API key. Uses Gemini 3.1 Flash Live
+   (native audio output) for improved multilingual speech quality, including
+   Amharic — the 2.5 native-audio preview model's Amharic output was poor.
+   Note: this app only sets systemInstruction once at connection time (no
+   mid-session prompt swaps are performed), so 3.1's lack of mid-session
+   instruction updates does not affect this integration. */
+const LIVE_MODEL = 'models/gemini-3.1-flash-live-preview';
 const LIVE_VOICE_NAME = 'Aoede';
 const LIVE_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
