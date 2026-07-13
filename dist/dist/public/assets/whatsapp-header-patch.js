@@ -11,6 +11,20 @@
   var WA_URL = 'https://wa.me/251952000777';
   var PATCH_ID = 'ethio-whatsapp-header-btn';
 
+  // Inject responsive CSS: hide phone text on small screens (icon-only pill)
+  (function injectStyle() {
+    if (document.getElementById('ethio-wa-style')) return;
+    var s = document.createElement('style');
+    s.id = 'ethio-wa-style';
+    s.textContent = [
+      '@media (max-width: 600px) {',
+      '  #' + PATCH_ID + ' .wa-num { display: none !important; }',
+      '  #' + PATCH_ID + ' { padding: 7px 9px !important; gap: 0 !important; }',
+      '}'
+    ].join('\n');
+    (document.head || document.documentElement).appendChild(s);
+  })();
+
   function buildButton() {
     var a = document.createElement('a');
     a.id = PATCH_ID;
@@ -51,9 +65,8 @@
     a.appendChild(svg);
 
     var span = document.createElement('span');
+    span.className = 'wa-num';
     span.textContent = PHONE;
-    // Hide number text on very small screens, keep icon only
-    span.style.cssText = 'display:inline';
     a.appendChild(span);
 
     a.addEventListener('mouseenter', function () {
