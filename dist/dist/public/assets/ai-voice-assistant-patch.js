@@ -831,10 +831,9 @@
     if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
     var isAm = hasAmharic(text);
     isSpeaking = true;
-    /* 5-second timeout so a failing Gemini TTS endpoint doesn't make the
-       visitor wait 30-60 s before the greeting appears. */
+    /* 2-second timeout — fail fast and fall back to Google TTS. */
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 5000) : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 2000) : null;
     fetch('/api/ai/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -865,9 +864,14 @@
 
   function speak(text) {
     if (!text) return;
-    var isAm = hasAmharic(text);
-    if (sessionVoice === 'google') {
-      speakWithGoogleTranslate(text, isAm ? 'am' : 'en');
+    var isAm = lang === 'am' || hasAmharic(text);
+    /* For Amharic: always use Google TTS — it handles Ethiopic natively and
+       responds in ~100 ms. Gemini TTS consistently fails/times out on Amharic
+       so there's no point trying it. */
+    if (isAm) {
+      speakWithGoogleTranslate(text, 'am');
+    } else if (sessionVoice === 'google') {
+      speakWithGoogleTranslate(text, 'en');
     } else {
       speakWithGemini(text); // handles both null (first call) and 'gemini' (locked)
     }
