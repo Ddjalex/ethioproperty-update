@@ -41,6 +41,7 @@ A real-estate listing site for Addis Ababa, Ethiopia ("EthioProperty" / "Prime A
 - Fixed (July 13, 2026): `ask-ai-bottom-left-button-patch.js` no longer throws `Cannot read properties of null (reading 'appendChild')` — added a `if (!document.body) return` guard in the `inject()` function so the MutationObserver firing before `<body>` exists is handled safely.
 - Re-imported and re-verified running July 11, 2026: `npm install`, `NEON_DATABASE_URL` re-entered, workflow restarted, homepage confirmed loading 64 properties against the real Neon DB.
 - `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` secrets were added this session. Google OAuth routes are now registered and active (`/auth/google`, `/auth/google/callback`) — confirmed in startup logs.
+- Re-imported and re-verified running July 13, 2026: `npm install`, `NEON_DATABASE_URL`/`GEMINI_API_KEY`/`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` re-entered (none carry over on fresh import), workflow restarted, homepage confirmed loading against the real Neon DB. A benign 401 on page load (likely an unauthenticated "check session" call) was observed in the browser console — not investigated further as it didn't affect page rendering.
 
 ## Optional/unused integrations referenced in code
 AWS SES, Gmail SMTP, Brevo, Gemini API — currently not configured; email sending logs to console only when unset.
