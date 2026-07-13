@@ -1169,6 +1169,9 @@
         picker.remove();
         var inputWrap2 = panel.querySelector('.pa-input-wrap');
         if (inputWrap2) inputWrap2.style.display = '';
+        /* Start the live voice session immediately — the WebSocket was
+           pre-warmed when the panel opened so there is no extra wait. */
+        autoStartLiveVoice();
         startConversation();
       });
     });
@@ -1213,6 +1216,10 @@
     if (mhb) mhb.classList.add('active');
 
     resetInputHeight();
+
+    /* Pre-connect the WebSocket now so the TCP+TLS+WS handshake is
+       already done by the time the visitor picks a language. */
+    prewarmForVoice();
 
     if (messages.length === 0 && !langPickerShown) {
       langPickerShown = true;
@@ -1273,6 +1280,7 @@
   var liveAiMsgEl = null;      // in-progress assistant transcript bubble
   var pendingMicChunks = [];   // audio captured before the server said 'ready'
   var micRequestToken = 0;     // bumped on stop so a late getUserMedia resolve is ignored
+  var wsPrewarmed = false;     // WS opened silently when panel opened, awaiting init
 
   function ab2b64(buffer) {
     var bytes = new Uint8Array(buffer), bin = '';
@@ -1465,20 +1473,114 @@
     }
   }
 
+  /* ── Shared WS handler attachment ─────────────────────────────────────
+     Called once we have a liveWs we intend to use for a real session.
+     Attaches onmessage / onerror / onclose; caller sets onopen separately. */
+  function _attachLiveWsHandlers() {
+    liveWs.onmessage = function(e) { handleLiveServerMsg(e.data); };
+    liveWs.onerror   = function()  { console.warn('[Live] socket error'); };
+    liveWs.onclose   = function()  {
+      if (liveActive || liveConnecting) {
+        setStatus('⚠️ ' + t('liveFailed'));
+        setTimeout(function() { setStatus(''); }, 4000);
+      }
+      stopLiveVoice();
+    };
+  }
+
+  /* Send the session-init message and kick off mic capture.
+     Called as soon as we know liveWs.readyState === OPEN. */
+  function _beginLiveSession() {
+    liveWs.send(JSON.stringify({ type: 'init', lang: lang, propertyId: getCurrentPropertyId() }));
+    startMicCaptureLive();
+  }
+
+  /* Open the WebSocket silently the moment the panel is shown so that
+     by the time the visitor picks a language the round-trip is already
+     done (or nearly so).  No mic permission is requested here — only
+     the TCP+TLS+WS handshake is started.  init is sent later in
+     autoStartLiveVoice() once lang is known. */
+  function prewarmForVoice() {
+    if (liveWs || !('WebSocket' in window)) return;
+    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    try { liveWs = new WebSocket(proto + '//' + location.host + '/api/ai/live'); }
+    catch(e) { return; }
+    wsPrewarmed = true;
+    /* Attach permanent handlers now; onopen is a silent no-op —
+       autoStartLiveVoice() will send init and start the mic later. */
+    _attachLiveWsHandlers();
+    liveWs.onopen = function() { /* waiting for lang selection */ };
+  }
+
+  /* Called automatically after language is chosen.  Uses the pre-warmed
+     socket if available so there is zero extra delay before speaking. */
+  function autoStartLiveVoice() {
+    if (liveActive || liveConnecting) return;
+    if (!navigator.mediaDevices) return;
+
+    stopSpeaking();
+    liveConnecting = true;
+    wsPrewarmed = false;
+    pendingMicChunks.length = 0;
+    updateVoiceButtonUI();
+    setStatus(t('liveConnecting'));
+    showLiveIndicator(true);
+
+    if (liveWs && liveWs.readyState === 1 /* OPEN — pre-warm finished */) {
+      _attachLiveWsHandlers();
+      _beginLiveSession();
+    } else if (liveWs && liveWs.readyState === 0 /* CONNECTING — still in flight */) {
+      _attachLiveWsHandlers();
+      liveWs.onopen = function() { _beginLiveSession(); };
+      /* Start mic now in parallel with the remaining WS setup time */
+      startMicCaptureLive();
+    } else {
+      /* Pre-warm failed or socket closed — create a fresh one */
+      if (liveWs) { try { liveWs.close(); } catch(e){} liveWs = null; }
+      var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      try { liveWs = new WebSocket(proto + '//' + location.host + '/api/ai/live'); }
+      catch(e) {
+        setStatus('⚠️ ' + t('liveFailed'));
+        liveConnecting = false;
+        updateVoiceButtonUI();
+        setTimeout(function() { setStatus(''); }, 4000);
+        return;
+      }
+      _attachLiveWsHandlers();
+      liveWs.onopen = function() { _beginLiveSession(); };
+      startMicCaptureLive();
+    }
+  }
+
   function startLiveVoice() {
     if (liveActive || liveConnecting) { stopLiveVoice(); return; }
-    if (!('WebSocket' in window) || !navigator.mediaDevices || !window.MediaRecorder && !window.AudioContext) {
+    if (!('WebSocket' in window) || !navigator.mediaDevices || (!window.MediaRecorder && !window.AudioContext)) {
       setStatus('⚠️ ' + t('micUnsupported'));
       setTimeout(function () { setStatus(''); }, 4000);
       return;
     }
     stopSpeaking();
     liveConnecting = true;
+    wsPrewarmed = false;
     pendingMicChunks.length = 0;
     updateVoiceButtonUI();
     setStatus(t('liveConnecting'));
     showLiveIndicator(true);
 
+    /* Re-use the pre-warmed socket if it is still alive */
+    if (liveWs && (liveWs.readyState === 0 || liveWs.readyState === 1)) {
+      _attachLiveWsHandlers();
+      if (liveWs.readyState === 1) {
+        _beginLiveSession();
+      } else {
+        liveWs.onopen = function() { _beginLiveSession(); };
+        startMicCaptureLive();
+      }
+      return;
+    }
+
+    /* Fresh start */
+    if (liveWs) { try { liveWs.close(); } catch(e){} liveWs = null; }
     var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     try {
       liveWs = new WebSocket(proto + '//' + location.host + '/api/ai/live');
@@ -1490,25 +1592,9 @@
       setTimeout(function () { setStatus(''); }, 4000);
       return;
     }
-
-    liveWs.onopen = function() {
-      liveWs.send(JSON.stringify({ type: 'init', lang: lang, propertyId: getCurrentPropertyId() }));
-    };
-    liveWs.onmessage = function(e) { handleLiveServerMsg(e.data); };
-    /* Kick off getUserMedia() now, in parallel with the WS handshake and
-       Gemini Live setup round-trip above, instead of waiting for 'ready'
-       to start capturing. See startMicCaptureLive() for details. */
+    _attachLiveWsHandlers();
+    liveWs.onopen = function() { _beginLiveSession(); };
     startMicCaptureLive();
-    liveWs.onerror = function() {
-      console.warn('[Live] socket error');
-    };
-    liveWs.onclose = function(e) {
-      if (liveActive || liveConnecting) {
-        setStatus('⚠️ ' + t('liveFailed'));
-        setTimeout(function () { setStatus(''); }, 4000);
-      }
-      stopLiveVoice();
-    };
   }
 
   function stopLiveVoice() {
@@ -1516,6 +1602,7 @@
     micRequestToken++; // invalidate any in-flight getUserMedia() promise
     liveActive = false;
     liveConnecting = false;
+    wsPrewarmed = false;
     liveUserMsgEl = null;
     liveAiMsgEl = null;
     pendingMicChunks.length = 0;
