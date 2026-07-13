@@ -13,7 +13,6 @@
   var synthesis = window.speechSynthesis;
   var currentUtterance = null;
   var currentAudio = null;
-  var sessionVoice = localStorage.getItem('pa_tts_voice') || null; // persisted: 'gemini'|'google'|null
   var langPickerShown = false;
 
   var T = {
@@ -790,22 +789,6 @@
     return langVoices[0] || null;
   }
 
-  function speakWithGoogleTranslate(text, langCode) {
-    if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
-    isSpeaking = true;
-    var url = '/api/ai/tts-google?lang=' + encodeURIComponent(langCode) +
-              '&text=' + encodeURIComponent(String(text).slice(0, 1500));
-    var audio = new Audio(url);
-    currentAudio = audio;
-    audio.onended = function () { isSpeaking = false; setStatus(''); currentAudio = null; };
-    audio.onerror = function () {
-      isSpeaking = false; setStatus(''); currentAudio = null;
-      /* Always attempt browser TTS as last resort even without a matching voice */
-      speakWithBrowser(text, langCode, 0.9);
-    };
-    audio.play().catch(function () { isSpeaking = false; setStatus(''); });
-  }
-
   function speakWithBrowser(text, langCode, rate) {
     if (!synthesis) return;
     synthesis.cancel();
@@ -831,9 +814,11 @@
     if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
     var isAm = hasAmharic(text);
     isSpeaking = true;
-    /* 2-second timeout — fail fast and fall back to Google TTS. */
+    /* Only fallback is the browser's own built-in speech synthesis — never
+       an external TTS provider. Gemini gets a longer timeout for Amharic
+       since that voice path is slower than English. */
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 2000) : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, isAm ? 6000 : 2000) : null;
     fetch('/api/ai/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -844,8 +829,6 @@
       if (!r.ok) throw new Error('tts ' + r.status);
       return r.blob();
     }).then(function (blob) {
-      sessionVoice = 'gemini';
-      localStorage.setItem('pa_tts_voice', 'gemini'); // persist for next session
       var url = URL.createObjectURL(blob);
       var audio = new Audio(url);
       currentAudio = audio;
@@ -854,27 +837,18 @@
       audio.play().catch(function () { isSpeaking = false; setStatus(''); });
     }).catch(function (err) {
       if (timer) clearTimeout(timer);
-      console.warn('[AI voice] Gemini TTS failed, locking to Google TTS:', err);
+      console.warn('[AI voice] Gemini TTS failed, falling back to the browser voice:', err);
       isSpeaking = false;
-      sessionVoice = 'google';
-      localStorage.setItem('pa_tts_voice', 'google'); // persist — skip Gemini next time
-      speakWithGoogleTranslate(text, isAm ? 'am' : 'en');
+      speakWithBrowser(text, isAm ? 'am' : 'en', isAm ? 0.9 : 1);
     });
   }
 
   function speak(text) {
     if (!text) return;
-    var isAm = lang === 'am' || hasAmharic(text);
-    /* For Amharic: always use Google TTS — it handles Ethiopic natively and
-       responds in ~100 ms. Gemini TTS consistently fails/times out on Amharic
-       so there's no point trying it. */
-    if (isAm) {
-      speakWithGoogleTranslate(text, 'am');
-    } else if (sessionVoice === 'google') {
-      speakWithGoogleTranslate(text, 'en');
-    } else {
-      speakWithGemini(text); // handles both null (first call) and 'gemini' (locked)
-    }
+    /* Gemini TTS only, with the browser's built-in speech synthesis as the
+       sole fallback — no external TTS provider is used for any AI voice
+       feature. */
+    speakWithGemini(text);
   }
 
   function stopSpeaking() {

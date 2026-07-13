@@ -7,4 +7,5 @@
 - [Relative OAuth callback URLs](relative-oauth-callback-url.md) — passport-oauth2 strategies resolve a relative callbackURL from the request's host, so one config works across multiple domains if each is registered with the provider.
 - [Detached-element outside-click bug](detached-target-outside-click-bug.md) — self-removing children (chips/dismiss buttons) make `contains(e.target)` outside-click checks misfire; use `composedPath()` instead.
 - [Real-time voice startup latency](realtime-voice-latency-buffering.md) — don't gate getUserMedia() behind the server handshake; start mic capture in parallel and buffer until 'ready'.
+- [Gemini-only AI policy for EthioProperty](gemini-only-ai-policy.md) — never call Google Translate/Cloud TTS or any non-Gemini provider for AI voice features; user explicitly banned it after a fallback was added.
 </content>
