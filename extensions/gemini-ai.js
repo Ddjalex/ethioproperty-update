@@ -635,13 +635,14 @@ export function registerAIRoutes(app, pool) {
       }
 
       const ttsPrompt = isAmharic
-        ? `Speak warmly, naturally and clearly in Amharic with a deep professional male tone: ${cleanText}`
-        : `Speak in a deep, professional, confident male voice: ${cleanText}`;
+        ? `Speak warmly, naturally and clearly in Amharic (am-ET) with a professional tone: ${cleanText}`
+        : `Speak in a deep, professional, confident voice: ${cleanText}`;
       const requestBody = {
         contents: [{ parts: [{ text: ttsPrompt }] }],
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {
+            languageCode: isAmharic ? 'am-ET' : 'en-US',
             voiceConfig: { prebuiltVoiceConfig: { voiceName } }
           }
         }
@@ -713,23 +714,28 @@ const LIVE_VOICE_NAME = 'Aoede';
 const LIVE_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
 function buildLiveSystemInstruction(basePrompt, lang) {
-  // Use whichever language the visitor selected. Both branches are enforced
-  // strictly so the model never code-switches mid-conversation.
+  // Language rule is placed FIRST so it dominates the model's generation context,
+  // and is written bilingually (target language + English) so the model's own
+  // language processing is anchored in the correct language from the very first token.
   const langLine = lang === 'am'
-    ? '\n\nCRITICAL LANGUAGE RULE: You MUST speak ONLY in Amharic (አማርኛ) at all times. ' +
-      'This is a strict and absolute requirement. Your very first word must be in Amharic. ' +
-      'Never utter a single English word, even if the visitor speaks English to you. ' +
-      'If the visitor speaks in English, still reply fully in Amharic. ' +
-      'Translate any English property data you mention into Amharic as you speak it.'
-    : '\n\nCRITICAL LANGUAGE RULE: You MUST speak ONLY in English at all times. ' +
-      'This is a strict and absolute requirement. Your very first word must be in English. ' +
-      'Never switch to Amharic or any other language, even if the visitor addresses you in Amharic. ' +
-      'Keep all property details and responses in clear, professional English.';
+    ? '=== ቋንቋ ደንብ (LANGUAGE RULE) ===\n' +
+      'አማርኛ ብቻ ተናገር። አንድም የእንግሊዘኛ ቃል አትጠቀም። ጎብኚው እንግሊዘኛ ቢናገርም፣ ' +
+      'ምላሽህ ሙሉ በሙሉ በአማርኛ መሆን አለበት።\n' +
+      'CRITICAL: You MUST speak ONLY in Amharic (አማርኛ) for this entire conversation. ' +
+      'Every single word you say must be in Amharic. Never use English. ' +
+      'If the visitor speaks in English, still reply entirely in Amharic. ' +
+      'Translate any English property data you mention into spoken Amharic.\n' +
+      '=========================\n\n'
+    : '=== LANGUAGE RULE ===\n' +
+      'You MUST speak ONLY in English for this entire conversation. ' +
+      'Every single word must be in English. Never switch to Amharic. ' +
+      'Keep all property details and responses in clear, professional English.\n' +
+      '=========================\n\n';
   const voiceLine = '\n\nYou are in a live, real-time spoken phone-style conversation, not a text chat. ' +
     'Keep replies short and natural — 1 to 3 sentences at a time. Never use markdown, bullet points, ' +
     'asterisks, or emoji, since everything you say is spoken aloud. Pause and let the visitor speak; ' +
     'if they interrupt you, stop and listen.';
-  return `${basePrompt}${langLine}${voiceLine}`;
+  return `${langLine}${basePrompt}${voiceLine}`;
 }
 
 export function registerLiveVoiceRoute(server, pool) {
@@ -813,8 +819,10 @@ export function registerLiveVoiceRoute(server, pool) {
         }
 
         const speechLangCode = lang === 'am' ? 'am-ET' : 'en-US';
+        console.log(`[AI live] session init | lang=${lang} | speechLangCode=${speechLangCode}`);
+        console.log(`[AI live] systemInstruction preview: ${systemInstruction.slice(0, 300)}`);
         upstream.on('open', () => {
-          upstream.send(JSON.stringify({
+          const setupMsg = {
             setup: {
               model: LIVE_MODEL,
               generationConfig: {
@@ -825,10 +833,12 @@ export function registerLiveVoiceRoute(server, pool) {
                 }
               },
               systemInstruction: { parts: [{ text: systemInstruction }] },
-              inputAudioTranscription: {},
-              outputAudioTranscription: {}
+              inputAudioTranscription: { languageCode: speechLangCode },
+              outputAudioTranscription: { languageCode: speechLangCode }
             }
-          }));
+          };
+          console.log('[AI live] sending setup to Gemini:', JSON.stringify(setupMsg).slice(0, 500));
+          upstream.send(JSON.stringify(setupMsg));
         });
 
         upstream.on('message', (data) => {
