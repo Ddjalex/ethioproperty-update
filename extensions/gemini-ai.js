@@ -713,19 +713,18 @@ const LIVE_VOICE_NAME = 'Aoede';
 const LIVE_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
 function buildLiveSystemInstruction(basePrompt, lang) {
-  // Live voice always responds in Amharic — this is an Ethiopian property
-  // platform and the live voice feature is specifically for Amharic speakers.
-  // The model must speak Amharic even if the visitor addresses it in English.
+  // Use whichever language the visitor selected. Both branches are enforced
+  // strictly so the model never code-switches mid-conversation.
   const langLine = lang === 'am'
     ? '\n\nCRITICAL LANGUAGE RULE: You MUST speak ONLY in Amharic (አማርኛ) at all times. ' +
       'This is a strict and absolute requirement. Your very first word must be in Amharic. ' +
       'Never utter a single English word, even if the visitor speaks English to you. ' +
       'If the visitor speaks in English, still reply fully in Amharic. ' +
       'Translate any English property data you mention into Amharic as you speak it.'
-    : '\n\nCRITICAL LANGUAGE RULE: You MUST speak ONLY in Amharic (አማርኛ) at all times. ' +
-      'This is a strict and absolute requirement. Your very first word must be in Amharic. ' +
-      'Never use English in your spoken replies. If the visitor speaks in English, ' +
-      'still reply fully in Amharic. Translate any English property data you mention into Amharic as you speak it.';
+    : '\n\nCRITICAL LANGUAGE RULE: You MUST speak ONLY in English at all times. ' +
+      'This is a strict and absolute requirement. Your very first word must be in English. ' +
+      'Never switch to Amharic or any other language, even if the visitor addresses you in Amharic. ' +
+      'Keep all property details and responses in clear, professional English.';
   const voiceLine = '\n\nYou are in a live, real-time spoken phone-style conversation, not a text chat. ' +
     'Keep replies short and natural — 1 to 3 sentences at a time. Never use markdown, bullet points, ' +
     'asterisks, or emoji, since everything you say is spoken aloud. Pause and let the visitor speak; ' +
@@ -813,13 +812,17 @@ export function registerLiveVoiceRoute(server, pool) {
           return teardown();
         }
 
+        const speechLangCode = lang === 'am' ? 'am-ET' : 'en-US';
         upstream.on('open', () => {
           upstream.send(JSON.stringify({
             setup: {
               model: LIVE_MODEL,
               generationConfig: {
                 responseModalities: ['AUDIO'],
-                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: LIVE_VOICE_NAME } } }
+                speechConfig: {
+                  languageCode: speechLangCode,
+                  voiceConfig: { prebuiltVoiceConfig: { voiceName: LIVE_VOICE_NAME } }
+                }
               },
               systemInstruction: { parts: [{ text: systemInstruction }] },
               inputAudioTranscription: {},
