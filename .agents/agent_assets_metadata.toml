@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "B0rgNkOnbGC9JjbtDbc81"
+uri = "file://deploy_output/ethioproperty-deploy.zip"
+type = "unspecified"
+title = "EthioProperty cPanel deployment package"
