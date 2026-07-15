@@ -8,4 +8,5 @@
 - [Detached-element outside-click bug](detached-target-outside-click-bug.md) — self-removing children (chips/dismiss buttons) make `contains(e.target)` outside-click checks misfire; use `composedPath()` instead.
 - [Real-time voice startup latency](realtime-voice-latency-buffering.md) — don't gate getUserMedia() behind the server handshake; start mic capture in parallel and buffer until 'ready'.
 - [Gemini-only AI policy for EthioProperty](gemini-only-ai-policy.md) — never call Google Translate/Cloud TTS or any non-Gemini provider for AI voice features; user explicitly banned it after a fallback was added.
+- [Gemini Live model vs language support](gemini-live-model-language-support.md) — a Live API model can accept setup then close with 1007 "unsupported language code"; verify LIVE_MODEL against languageCode via GET /v1beta/models, don't trust comments.
 </content>

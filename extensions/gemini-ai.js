@@ -714,7 +714,7 @@ export function registerAIRoutes(app, pool) {
    verify against GET /v1beta/models before changing this, since Gemini
    silently closes the socket right after setup (no error event) if the
    model name is invalid or doesn't support live/bidi audio. */
-const LIVE_MODEL = 'models/gemini-2.5-flash-native-audio-latest';
+const LIVE_MODEL = 'models/gemini-3.1-flash-live-preview';
 const LIVE_VOICE_NAME = 'Aoede';
 const LIVE_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
