@@ -72,6 +72,10 @@
   var view = 'list'; // 'list' | 'form'
   var editingId = null;
   var formState = { title: '', slug: '', content: '', excerpt: '', featured_image: '', meta_description: '', meta_keywords: '', is_published: false };
+  // True while a featured-image upload request is in flight. Save is blocked
+  // during this window so a fast click can't save the post before the
+  // uploaded image URL has been applied to formState.
+  var imageUploading = false;
 
   function esc(str) {
     return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -279,6 +283,9 @@
     }
 
     showImageStatus('Uploading…', false);
+    imageUploading = true;
+    var saveBtn = document.getElementById('blog-save-btn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.dataset.origLabel = saveBtn.dataset.origLabel || saveBtn.textContent; saveBtn.textContent = 'Uploading image…'; }
 
     var fd = new FormData();
     fd.append('image', file);
@@ -293,17 +300,25 @@
         return r.json();
       })
       .then(function (data) {
+        imageUploading = false;
         syncFormFieldsFromDom();
         formState.featured_image = data.url;
         renderPage();
       })
       .catch(function (err) {
+        imageUploading = false;
         console.error('Featured image upload failed:', err);
         showImageStatus('Upload failed: ' + err.message, true);
+        var btn = document.getElementById('blog-save-btn');
+        if (btn) { btn.disabled = false; btn.textContent = btn.dataset.origLabel || btn.textContent; }
       });
   };
 
   window.__blogSave = function () {
+    if (imageUploading) {
+      showFormStatus('Please wait for the image upload to finish before saving.', 'error');
+      return;
+    }
     var title = (document.getElementById('blog-f-title') || {}).value || '';
     var content = (document.getElementById('blog-f-content') || {}).value || '';
     var excerpt = (document.getElementById('blog-f-excerpt') || {}).value || '';
