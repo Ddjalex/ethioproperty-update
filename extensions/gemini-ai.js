@@ -709,9 +709,12 @@ export function registerAIRoutes(app, pool) {
    provider, even for Amharic. Uses Gemini 3.1 Flash Live for its improved
    multilingual native audio quality.
    Note: this app only sets systemInstruction once at connection time (no
-   mid-session prompt swaps are performed), so 3.1's lack of mid-session
-   instruction updates does not affect this integration. */
-const LIVE_MODEL = 'models/gemini-3.1-flash-live-preview';
+   mid-session prompt swaps are performed).
+   LIVE_MODEL must be a model that actually supports bidiGenerateContent —
+   verify against GET /v1beta/models before changing this, since Gemini
+   silently closes the socket right after setup (no error event) if the
+   model name is invalid or doesn't support live/bidi audio. */
+const LIVE_MODEL = 'models/gemini-2.5-flash-native-audio-latest';
 const LIVE_VOICE_NAME = 'Aoede';
 const LIVE_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
@@ -835,8 +838,12 @@ export function registerLiveVoiceRoute(server, pool) {
                 }
               },
               systemInstruction: { parts: [{ text: systemInstruction }] },
-              inputAudioTranscription: { languageCode: speechLangCode },
-              outputAudioTranscription: { languageCode: speechLangCode }
+              // inputAudioTranscription/outputAudioTranscription only accept an empty
+              // object to enable transcription — a languageCode field here is rejected
+              // by the API with a 1007 "Cannot find field" close (language is inferred
+              // from speechConfig.languageCode above).
+              inputAudioTranscription: {},
+              outputAudioTranscription: {}
             }
           };
           console.log('[AI live] sending setup to Gemini:', JSON.stringify(setupMsg).slice(0, 500));
@@ -885,7 +892,8 @@ export function registerLiveVoiceRoute(server, pool) {
           teardown();
         });
 
-        upstream.on('close', () => {
+        upstream.on('close', (code, reason) => {
+          console.log(`[AI live] upstream closed | code=${code} reason=${reason ? reason.toString().slice(0, 300) : ''}`);
           if (!closed) sendToClient({ type: 'error', message: 'Live voice session ended. You can keep typing instead.' });
           teardown();
         });
