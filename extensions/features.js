@@ -57,8 +57,22 @@ function formatDate(d) {
    never throws — caller must .catch() if it wants to log errors.          */
 
 function buildSheetsAuth() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  let key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '';
+  let email = (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '').trim();
+  let key = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '').trim();
+  // Users often paste the raw JSON field value, which can drag along a
+  // surrounding pair of quotes (and sometimes a stray leading/trailing
+  // space) from the source file — strip those before touching newlines,
+  // since a leading space or trailing `"` corrupts the PEM structure and
+  // makes OpenSSL fail with a generic "unsupported" decode error.
+  const stripWrappingQuotes = (s) => {
+    s = s.trim();
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+      s = s.slice(1, -1).trim();
+    }
+    return s;
+  };
+  email = stripWrappingQuotes(email);
+  key = stripWrappingQuotes(key);
   // Env vars sometimes store literal \n instead of real newlines
   if (key && !key.includes('\n')) {
     key = key.replace(/\\n/g, '\n');

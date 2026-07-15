@@ -9,4 +9,5 @@
 - [Real-time voice startup latency](realtime-voice-latency-buffering.md) — don't gate getUserMedia() behind the server handshake; start mic capture in parallel and buffer until 'ready'.
 - [Gemini-only AI policy for EthioProperty](gemini-only-ai-policy.md) — never call Google Translate/Cloud TTS or any non-Gemini provider for AI voice features; user explicitly banned it after a fallback was added.
 - [Gemini Live model vs language support](gemini-live-model-language-support.md) — a Live API model can accept setup then close with 1007 "unsupported language code"; verify LIVE_MODEL against languageCode via GET /v1beta/models, don't trust comments.
+- [Service account key paste corruption](service-account-key-paste-corruption.md) — a pasted private_key with stray wrapping quotes/whitespace fails PEM decode with a generic OpenSSL error; strip quotes before \n conversion.
 </content>
