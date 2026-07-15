@@ -5,4 +5,4 @@ generated = []
 id = "B0rgNkOnbGC9JjbtDbc81"
 uri = "file://deploy_output/ethioproperty-deploy.zip"
 type = "unspecified"
-title = "EthioProperty cPanel deployment package"
+title = "EthioProperty cPanel deploy (fixed extensions path)"

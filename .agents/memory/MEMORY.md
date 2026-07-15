@@ -23,4 +23,5 @@
 - [Gemini Live model vs language support](gemini-live-model-language-support.md) — a Live API model can accept setup then close with 1007 "unsupported language code"; verify LIVE_MODEL against languageCode via GET /v1beta/models, don't trust comments.
 ; verify with grep/ShellExec after any edit containing `$`, or write the file via a script instead.
 - [Gemini Live function calling for real-time grounding](gemini-live-function-calling-grounding.md) — Live API voice sessions need a declared tool + toolCall/toolResponse handling to ground answers in live DB data; a static prompt-injected summary alone still lets the model drift/hallucinate.
+- [cPanel deploy zip relative-import flattening](cpanel-deploy-relative-import-flattening.md) — flattening dist/dist/index.js to dist/index.js shifts baked-in `../`-style imports by one level; must patch each affected import, not just copy the file.
 </content>
