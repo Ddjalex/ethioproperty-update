@@ -161,6 +161,43 @@ function parseSearchCriteria(text) {
  * Returns a formatted string block (same style as getCachedPropertySummary)
  * or null if no criteria were found / no matches.
  */
+const PROPERTY_SELECT_COLS =
+  'id, title, price, city, subcity, address, bedrooms, bathrooms, property_type, status, features, images';
+
+/** Shape a raw DB row into the compact structure the frontend uses to render
+ *  a real property card (real link, real image, real price/beds/baths). */
+function toCardShape(p) {
+  const loc = [p.address, p.subcity, p.city].filter(Boolean).join(', ');
+  const images = Array.isArray(p.images) ? p.images : [];
+  const features = Array.isArray(p.features) ? p.features : [];
+  return {
+    id: p.id,
+    title: p.title,
+    price: Number(p.price) || 0,
+    propertyType: p.property_type,
+    status: p.status,
+    bedrooms: p.bedrooms,
+    bathrooms: p.bathrooms,
+    location: loc,
+    features,
+    image: images[0] || null,
+    link: `/properties/${p.id}`,
+  };
+}
+
+function formatListingLine(p) {
+  const loc = [p.address, p.subcity, p.city].filter(Boolean).join(', ');
+  const features = Array.isArray(p.features) ? p.features : [];
+  const featuresStr = features.length ? features.slice(0, 6).join(', ') : 'none listed';
+  return `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${loc} | ${p.bedrooms}bd ${p.bathrooms}ba | Amenities: ${featuresStr} | View: /properties/${p.id}`;
+}
+
+/**
+ * Query the DB for properties matching the extracted criteria.
+ * Returns { text, rows, cards } (text for the LLM prompt, cards for the
+ * frontend to render as real property cards) or null if no criteria /
+ * no matches at all.
+ */
 async function queryMatchingProperties(pool, criteria) {
   const hasCriteria = Object.keys(criteria).length > 0;
   if (!hasCriteria) return null;
@@ -195,8 +232,7 @@ async function queryMatchingProperties(pool, criteria) {
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const sql = `
-    SELECT id, title, price, city, subcity, address, bedrooms, bathrooms,
-           property_type, status
+    SELECT ${PROPERTY_SELECT_COLS}
     FROM properties
     ${where}
     ORDER BY is_featured DESC, created_at DESC
@@ -224,22 +260,23 @@ async function queryMatchingProperties(pool, criteria) {
       if (!looseConds.length) return null;
       const looseWhere = `WHERE ${looseConds.join(' AND ')}`;
       const { rows: looseRows } = await pool.query(
-        `SELECT id, title, price, city, subcity, bedrooms, bathrooms, property_type, status, address
+        `SELECT ${PROPERTY_SELECT_COLS}
          FROM properties ${looseWhere}
          ORDER BY is_featured DESC, created_at DESC LIMIT 8`,
         looseParams
       ).catch(() => ({ rows: [] }));
       if (!looseRows.length) return null;
-      return `(Relaxed criteria — closest available matches)\n` +
-        looseRows.map(p => {
-          const loc = [p.address, p.subcity, p.city].filter(Boolean).join(', ');
-          return `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${loc} | ${p.bedrooms}bd ${p.bathrooms}ba | View: /properties/${p.id}`;
-        }).join('\n');
+      return {
+        text: `(Relaxed criteria — closest available matches)\n` + looseRows.map(formatListingLine).join('\n'),
+        rows: looseRows,
+        cards: looseRows.map(toCardShape),
+      };
     }
-    return rows.map(p => {
-      const loc = [p.address, p.subcity, p.city].filter(Boolean).join(', ');
-      return `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${loc} | ${p.bedrooms}bd ${p.bathrooms}ba | View: /properties/${p.id}`;
-    }).join('\n');
+    return {
+      text: rows.map(formatListingLine).join('\n'),
+      rows,
+      cards: rows.map(toCardShape),
+    };
   } catch (e) {
     console.error('[AI search] query error:', e.message);
     return null;
@@ -263,18 +300,15 @@ async function getCachedPropertySummary(pool) {
   const now = Date.now();
   if (AI_PROPS_CACHE.value && now < AI_PROPS_CACHE.expires) return AI_PROPS_CACHE.value;
   const { rows } = await pool.query(
-    `SELECT id, title, price, city, subcity, address, bedrooms, bathrooms, property_type, status
+    `SELECT ${PROPERTY_SELECT_COLS}
      FROM properties ORDER BY is_featured DESC, created_at DESC LIMIT 30`
   ).catch(() => ({ rows: [] }));
-  const summary = rows.length
-    ? rows.map(p => {
-        const loc = [p.address, p.subcity, p.city].filter(Boolean).join(', ');
-        return `- [#${p.id}] ${p.title} | ${p.property_type} | ${p.status} | ETB ${Number(p.price).toLocaleString()} | ${loc} | ${p.bedrooms}bd ${p.bathrooms}ba`;
-      }).join('\n')
-    : '(No properties listed yet)';
-  AI_PROPS_CACHE.value = summary;
+  const result = rows.length
+    ? { text: rows.map(formatListingLine).join('\n'), rows, cards: rows.map(toCardShape) }
+    : { text: '(No properties listed yet)', rows: [], cards: [] };
+  AI_PROPS_CACHE.value = result;
   AI_PROPS_CACHE.expires = now + AI_CACHE_TTL_MS;
-  return summary;
+  return result;
 }
 
 export function registerAIRoutes(app, pool) {
@@ -365,7 +399,7 @@ export function registerAIRoutes(app, pool) {
     const [promptByLang, propSummary, matchedListings, currentPropRes] = await Promise.all([
       getCachedPrompts(pool),
       // Use generic summary only when no specific criteria detected and not on a property page
-      (!hasPid && !hasSearchCriteria) ? getCachedPropertySummary(pool) : Promise.resolve(''),
+      (!hasPid && !hasSearchCriteria) ? getCachedPropertySummary(pool) : Promise.resolve(null),
       // Run targeted search when criteria found
       (!hasPid && hasSearchCriteria) ? queryMatchingProperties(pool, criteria) : Promise.resolve(null),
       hasPid
@@ -380,6 +414,7 @@ export function registerAIRoutes(app, pool) {
     }
 
     let currentPropertyBlock = '';
+    let currentPropertyCard = null;
     const cp = currentPropRes.rows[0];
     if (cp) {
       const features = Array.isArray(cp.features) ? cp.features.join(', ') : (cp.features || '');
@@ -402,6 +437,7 @@ export function registerAIRoutes(app, pool) {
       currentPropertyBlock = lang === 'am'
         ? `\n\nተጠቃሚው አሁን ይህን ንብረት እያየ ነው። ስለዚህ ንብረት ሲጠይቅ ከታች ካለው መረጃ ብቻ መልስ። ምላሹን ሙሉ በሙሉ በአማርኛ ስጥ (የንብረቱ መረጃ በእንግሊዝኛ ቢሆንም እንኳን ስሞችንና አካባቢዎችን ተርጉም/ግልባጭ አድርግ)።\n--- Currently viewed property ---\n${lines}\n--- End ---`
         : `\n\nThe user is currently viewing this property. Answer questions about it using only the data below.\n--- Currently viewed property ---\n${lines}\n--- End ---`;
+      currentPropertyCard = toCardShape(cp);
     }
 
     const langInstruction = lang === 'am'
@@ -410,6 +446,7 @@ export function registerAIRoutes(app, pool) {
 
     // Build listings block: prefer targeted search results, fall back to generic summary
     let listingsBlock = '';
+    let cards = [];
     if (matchedListings) {
       const criteriaDesc = [
         criteria.propertyType,
@@ -419,10 +456,15 @@ export function registerAIRoutes(app, pool) {
         criteria.maxPrice ? `under ETB ${criteria.maxPrice.toLocaleString()}` : null,
         criteria.minPrice ? `above ETB ${criteria.minPrice.toLocaleString()}` : null,
       ].filter(Boolean).join(' ');
-      listingsBlock = `\n\nMatching listings from the database (${criteriaDesc || 'filtered search'}):\n${matchedListings}\n\nIMPORTANT: Base your answer on these real listings. Reference specific property IDs and prices from this list. Do not invent properties.`;
+      listingsBlock = `\n\nMatching listings from the database (${criteriaDesc || 'filtered search'}):\n${matchedListings.text}\n\nIMPORTANT: Base your answer ONLY on these real listings, including their exact price, bedrooms, bathrooms, address and amenities/features. Reference specific property IDs from this list. Do not invent or alter any detail.`;
+      cards = matchedListings.cards;
       console.log(`[AI search] criteria: ${JSON.stringify(criteria)} → matched listings block injected`);
-    } else if (propSummary) {
-      listingsBlock = `\n\nCurrent property listings:\n${propSummary}`;
+    } else if (propSummary && propSummary.text) {
+      listingsBlock = `\n\nCurrent property listings:\n${propSummary.text}`;
+      cards = propSummary.cards.slice(0, 8);
+    }
+    if (currentPropertyCard) {
+      cards = [currentPropertyCard, ...cards.filter(c => c.id !== currentPropertyCard.id)];
     }
 
     const systemInstruction = `${basePrompt}${langInstruction}${listingsBlock}${currentPropertyBlock}`;
@@ -435,6 +477,7 @@ export function registerAIRoutes(app, pool) {
 
     return {
       lang,
+      cards,
       requestBody: {
         system_instruction: { parts: [{ text: systemInstruction }] },
         contents,
@@ -467,7 +510,7 @@ export function registerAIRoutes(app, pool) {
         return res.json({ text: lang === 'am' ? 'ይቅርታ፣ ምላሽ አልተገኘም።' : 'Sorry, no response was generated.' });
       }
       console.log(`[AI chat] ✓ response (${text.length} chars)`);
-      res.json({ text });
+      res.json({ text, properties: built.cards || [] });
     } catch (e) {
       console.error('[AI chat] Exception:', e.message);
       const lang = req.body?.language === 'am' ? 'am' : 'en';
@@ -583,6 +626,9 @@ export function registerAIRoutes(app, pool) {
 
       if (!streamed) {
         sendEvent({ delta: aiFallbackText(lang) });
+      }
+      if (built.cards && built.cards.length) {
+        sendEvent({ properties: built.cards });
       }
       res.write('data: [DONE]\n\n');
       res.end();
@@ -740,8 +786,32 @@ function buildLiveSystemInstruction(basePrompt, lang) {
     'Keep replies short and natural — 1 to 3 sentences at a time. Never use markdown, bullet points, ' +
     'asterisks, or emoji, since everything you say is spoken aloud. Pause and let the visitor speak; ' +
     'if they interrupt you, stop and listen.';
-  return `${langLine}${basePrompt}${voiceLine}`;
+  const toolLine = '\n\nYou have a tool named search_properties connected to the real, live Ethio Property ' +
+    'database. Call it every single time the visitor asks about a property, price, location, amenity, or ' +
+    'bedroom/bathroom count — even if you already showed listings earlier in the call, since the visitor may ' +
+    'be asking about a different one. Never state a price, address, amenity, or bedroom/bathroom count that ' +
+    'did not come back from that tool. If the tool returns nothing matching, say so honestly instead of guessing.';
+  return `${langLine}${basePrompt}${voiceLine}${toolLine}`;
 }
+
+const SEARCH_PROPERTIES_TOOL = {
+  functionDeclarations: [{
+    name: 'search_properties',
+    description: 'Search real, live property listings on the Ethio Property platform (uploaded by the admin). ' +
+      'Always call this before telling the visitor any price, address, amenity, or bedroom/bathroom count.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        subcity: { type: 'STRING', description: 'Subcity or neighbourhood in Addis Ababa, e.g. Bole, Kirkos.' },
+        propertyType: { type: 'STRING', description: 'Apartment, House, Villa, Townhouse, Commercial, or Land.' },
+        bedrooms: { type: 'INTEGER', description: 'Exact number of bedrooms requested.' },
+        status: { type: 'STRING', description: '"For Sale" or "For Rent".' },
+        minPrice: { type: 'NUMBER', description: 'Minimum price in ETB.' },
+        maxPrice: { type: 'NUMBER', description: 'Maximum price in ETB.' },
+      },
+    },
+  }],
+};
 
 export function registerLiveVoiceRoute(server, pool) {
   if (!server || typeof server.on !== 'function') {
@@ -802,7 +872,7 @@ export function registerLiveVoiceRoute(server, pool) {
               : Promise.resolve({ rows: [] })
           ]);
           basePrompt = promptByLang[lang] || promptByLang[lang === 'am' ? 'en' : 'am'] || basePrompt;
-          if (propSummary) extraBlock += `\n\nCurrent property listings:\n${propSummary}`;
+          if (propSummary && propSummary.text) extraBlock += `\n\nCurrent property listings (call search_properties for a targeted, up-to-date match instead of relying only on this list):\n${propSummary.text}`;
           const cp = currentPropRes.rows[0];
           if (cp) {
             extraBlock += `\n\nThe visitor is currently viewing property #${cp.id}: ${cp.title || ''}, ` +
@@ -838,6 +908,7 @@ export function registerLiveVoiceRoute(server, pool) {
                 }
               },
               systemInstruction: { parts: [{ text: systemInstruction }] },
+              tools: [SEARCH_PROPERTIES_TOOL],
               // inputAudioTranscription/outputAudioTranscription only accept an empty
               // object to enable transcription — a languageCode field here is rejected
               // by the API with a 1007 "Cannot find field" close (language is inferred
@@ -850,7 +921,7 @@ export function registerLiveVoiceRoute(server, pool) {
           upstream.send(JSON.stringify(setupMsg));
         });
 
-        upstream.on('message', (data) => {
+        upstream.on('message', async (data) => {
           let obj;
           try { obj = JSON.parse(data.toString()); } catch { return; }
 
@@ -859,6 +930,44 @@ export function registerLiveVoiceRoute(server, pool) {
             sendToClient({ type: 'ready' });
             for (const m of pendingRealtime) { try { upstream.send(m); } catch {} }
             pendingRealtime.length = 0;
+            return;
+          }
+
+          if (obj.toolCall && Array.isArray(obj.toolCall.functionCalls)) {
+            const functionResponses = [];
+            for (const call of obj.toolCall.functionCalls) {
+              let resultText = 'No matching properties found in the database.';
+              let cards = [];
+              if (call.name === 'search_properties') {
+                try {
+                  const criteria = {};
+                  const args = call.args || {};
+                  if (args.subcity) criteria.subcity = args.subcity;
+                  if (args.propertyType) criteria.propertyType = args.propertyType;
+                  if (args.bedrooms) criteria.bedrooms = Number(args.bedrooms);
+                  if (args.status) criteria.status = args.status;
+                  if (args.minPrice != null) criteria.minPrice = Number(args.minPrice);
+                  if (args.maxPrice != null) criteria.maxPrice = Number(args.maxPrice);
+                  const result = Object.keys(criteria).length
+                    ? await queryMatchingProperties(pool, criteria)
+                    : await getCachedPropertySummary(pool);
+                  if (result && result.text) {
+                    resultText = result.text;
+                    cards = result.cards || [];
+                  }
+                } catch (e) {
+                  console.error('[AI live] search_properties tool error:', e.message);
+                  resultText = 'Search failed due to a server error.';
+                }
+              }
+              functionResponses.push({ id: call.id, name: call.name, response: { result: resultText } });
+              if (cards.length) sendToClient({ type: 'properties', properties: cards });
+            }
+            try {
+              upstream.send(JSON.stringify({ toolResponse: { functionResponses } }));
+            } catch (e) {
+              console.error('[AI live] failed to send tool response:', e.message);
+            }
             return;
           }
 

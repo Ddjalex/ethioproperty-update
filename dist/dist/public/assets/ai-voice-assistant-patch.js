@@ -418,6 +418,33 @@
     .pa-contact-card-skip:hover { color: #374151; text-decoration: underline; }
     .pa-contact-card-success { font-size: 13px; color: #065f46; text-align: center; font-weight: 600; padding: 4px 0; }
 
+    /* ── AI Property Cards (real listings, not text) ── */
+    .pa-property-cards { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 6px; }
+    .pa-property-card {
+      display: flex; gap: 10px; text-decoration: none; color: inherit;
+      background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px;
+      padding: 8px; transition: all 0.15s; cursor: pointer;
+    }
+    .pa-property-card:hover { border-color: #818cf8; box-shadow: 0 2px 10px rgba(79,70,229,0.12); transform: translateY(-1px); }
+    .pa-property-card-img {
+      width: 72px; height: 72px; border-radius: 10px; object-fit: cover;
+      flex-shrink: 0; background: #f3f4f6;
+    }
+    .pa-property-card-img-fallback {
+      width: 72px; height: 72px; border-radius: 10px; flex-shrink: 0;
+      background: linear-gradient(135deg,#e0e7ff,#eef2ff);
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+    }
+    .pa-property-card-body { flex: 1; min-width: 0; }
+    .pa-property-card-title {
+      font-size: 12.5px; font-weight: 700; color: #1f2937; line-height: 1.3;
+      overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .pa-property-card-price { font-size: 13px; font-weight: 800; color: #4338ca; margin-top: 2px; }
+    .pa-property-card-meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .pa-property-card-link { font-size: 11px; font-weight: 700; color: #4f46e5; margin-top: 3px; }
+
     /* ── Language Picker ── */
     #pa-lang-picker {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -686,6 +713,11 @@
     phoneInput.placeholder = isAm ? 'ስልክ ቁጥር (+251...)' : 'Phone number (+251...)';
     phoneInput.maxLength = 20;
 
+    var emailInput = document.createElement('input');
+    emailInput.type = 'email';
+    emailInput.placeholder = isAm ? 'ኢሜይል (አማራጭ)' : 'Email (optional)';
+    emailInput.maxLength = 120;
+
     var submitBtn = document.createElement('button');
     submitBtn.type = 'button';
     submitBtn.className = 'pa-contact-card-submit';
@@ -700,6 +732,7 @@
     card.appendChild(subEl);
     card.appendChild(nameInput);
     card.appendChild(phoneInput);
+    card.appendChild(emailInput);
     card.appendChild(submitBtn);
     card.appendChild(skipBtn);
 
@@ -708,7 +741,8 @@
     submitBtn.addEventListener('click', function () {
       var name = nameInput.value.trim();
       var phone = phoneInput.value.trim();
-      if (!name && !phone) { nameInput.focus(); return; }
+      var email = emailInput.value.trim();
+      if (!name && !phone && !email) { nameInput.focus(); return; }
 
       localStorage.setItem('pa_contact_captured_v1', '1');
 
@@ -724,7 +758,7 @@
         body: JSON.stringify({
           name: name || 'AI Chat Visitor',
           phone: phone || '',
-          email: '',
+          email: email || '',
           source: 'Ask AI Chat'
         })
       }).catch(function (e) { console.warn('[AI Contact] Sheets sync failed:', e.message); });
@@ -732,6 +766,88 @@
 
     msgsEl.appendChild(card);
     scrollToBottom();
+  }
+
+  /* ── Real property cards (from the live DB, never hallucinated) ── */
+  function fmtPrice(n) {
+    n = Number(n) || 0;
+    return 'ETB ' + n.toLocaleString();
+  }
+
+  function renderPropertyCards(list) {
+    if (!Array.isArray(list) || !list.length) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'pa-property-cards';
+    list.slice(0, 4).forEach(function (p) {
+      var a = document.createElement('a');
+      a.className = 'pa-property-card';
+      a.href = p.link || ('/properties/' + p.id);
+
+      if (p.image) {
+        var img = document.createElement('img');
+        img.className = 'pa-property-card-img';
+        img.src = p.image;
+        img.alt = p.title || '';
+        img.loading = 'lazy';
+        a.appendChild(img);
+      } else {
+        var fallback = document.createElement('div');
+        fallback.className = 'pa-property-card-img-fallback';
+        fallback.textContent = '🏠';
+        a.appendChild(fallback);
+      }
+
+      var body = document.createElement('div');
+      body.className = 'pa-property-card-body';
+
+      var titleEl = document.createElement('div');
+      titleEl.className = 'pa-property-card-title';
+      titleEl.textContent = p.title || '';
+      body.appendChild(titleEl);
+
+      var priceEl = document.createElement('div');
+      priceEl.className = 'pa-property-card-price';
+      priceEl.textContent = fmtPrice(p.price);
+      body.appendChild(priceEl);
+
+      var metaBits = [];
+      if (p.bedrooms != null && p.bedrooms !== '') metaBits.push(p.bedrooms + 'bd');
+      if (p.bathrooms != null && p.bathrooms !== '') metaBits.push(p.bathrooms + 'ba');
+      if (p.location) metaBits.push(p.location);
+      var metaEl = document.createElement('div');
+      metaEl.className = 'pa-property-card-meta';
+      metaEl.textContent = metaBits.join(' · ');
+      body.appendChild(metaEl);
+
+      var linkEl = document.createElement('div');
+      linkEl.className = 'pa-property-card-link';
+      linkEl.textContent = (lang === 'am' ? 'ዝርዝር ይመልከቱ →' : 'View details →');
+      body.appendChild(linkEl);
+
+      a.appendChild(body);
+
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        navigateSPA(a.getAttribute('href'));
+      });
+
+      wrap.appendChild(a);
+    });
+    msgsEl.appendChild(wrap);
+    scrollToBottom();
+  }
+
+  /* Navigate using the host app's own router when available, so the property
+     card behaves like a real in-app link instead of a full page reload. */
+  function navigateSPA(href) {
+    try {
+      if (window.history && window.history.pushState) {
+        window.history.pushState({}, '', href);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        return;
+      }
+    } catch (e) {}
+    window.location.href = href;
   }
 
   /* ── Quick suggestion chips ─────────────────── */
@@ -1051,6 +1167,7 @@
           var reply = data.text || (lang === 'am' ? 'ይቅርታ፣ ችግር ተፈጥሯል።' : 'Sorry, something went wrong.');
           messages.push({ role: 'assistant', content: reply });
           addMessage('ai', reply);
+          if (data.properties) renderPropertyCards(data.properties);
           speak(reply);
           showQuickReplies();
         });
@@ -1061,6 +1178,7 @@
       var buf = '';
       var fullText = '';
       var msgEl = null;
+      var pendingCards = null;
 
       var streamGroup = null;
 
@@ -1100,6 +1218,7 @@
             try {
               var obj = JSON.parse(payload);
               if (typeof obj.delta === 'string') appendDelta(obj.delta);
+              if (Array.isArray(obj.properties)) pendingCards = obj.properties;
             } catch (e) {}
           }
         }
@@ -1118,6 +1237,7 @@
                 timeEl.textContent = formatTime(new Date());
                 streamGroup.appendChild(timeEl);
               }
+              if (pendingCards) renderPropertyCards(pendingCards);
               speak(fullText);
               showQuickReplies();
             } else {
@@ -1394,8 +1514,25 @@
     if (msg.type === 'turnComplete') {
       if (liveUserMsgEl && liveUserMsgEl.textContent) messages.push({ role: 'user', content: liveUserMsgEl.textContent });
       if (liveAiMsgEl && liveAiMsgEl.textContent) messages.push({ role: 'assistant', content: liveAiMsgEl.textContent });
+      var hadAiTurn = !!(liveAiMsgEl && liveAiMsgEl.textContent);
       liveUserMsgEl = null;
       liveAiMsgEl = null;
+      // Live voice never shows quick-reply chips (awkward mid-call), but it
+      // should still offer the contact-capture card after a few AI turns,
+      // same as text chat — the AI itself must never ask for this by voice.
+      if (hadAiTurn) {
+        aiReplyCount++;
+        if (aiReplyCount >= CONTACT_CARD_AFTER && !contactCardShown && !document.getElementById('pa-contact-card')) {
+          setTimeout(showContactCapture, 400);
+        }
+      }
+      return;
+    }
+
+    if (msg.type === 'properties') {
+      /* The AI looked up real listings mid-call via its search tool —
+         show them as clickable cards, same as in text chat. */
+      renderPropertyCards(msg.properties);
       return;
     }
   }
