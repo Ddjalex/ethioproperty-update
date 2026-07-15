@@ -1435,7 +1435,7 @@
           pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
         var frame = JSON.stringify({
-          realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: ab2b64(pcm16.buffer) }] }
+          realtimeInput: { audio: { mimeType: 'audio/pcm;rate=16000', data: ab2b64(pcm16.buffer) } }
         });
         if (liveActive && liveWs.readyState === 1) {
           liveWs.send(frame);
