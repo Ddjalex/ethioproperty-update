@@ -761,7 +761,7 @@ export function registerAIRoutes(app, pool) {
    silently closes the socket right after setup (no error event) if the
    model name is invalid or doesn't support live/bidi audio. */
 const LIVE_MODEL = 'models/gemini-3.1-flash-live-preview';
-const LIVE_VOICE_NAME = 'Aoede';
+const LIVE_VOICE_NAME = 'Charon';
 const LIVE_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
 function buildLiveSystemInstruction(basePrompt, lang) {
