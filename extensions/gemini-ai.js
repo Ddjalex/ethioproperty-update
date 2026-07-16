@@ -790,7 +790,11 @@ function buildLiveSystemInstruction(basePrompt, lang) {
     'database. Call it every single time the visitor asks about a property, price, location, amenity, or ' +
     'bedroom/bathroom count — even if you already showed listings earlier in the call, since the visitor may ' +
     'be asking about a different one. Never state a price, address, amenity, or bedroom/bathroom count that ' +
-    'did not come back from that tool. If the tool returns nothing matching, say so honestly instead of guessing.';
+    'did not come back from that tool. If the tool returns nothing matching, say so honestly instead of guessing.\n\n' +
+    'CRITICAL TOOL RULE: NEVER speak, say, or read aloud any function call name, JSON, parameter, or argument text. ' +
+    'Tool calls are completely silent and invisible to the visitor — you invoke them internally, wait for the result, ' +
+    'then speak ONLY your natural-language reply in the conversation language. ' +
+    'If you say "call:search_properties" or any function name out loud, that is a serious error.';
   return `${langLine}${basePrompt}${voiceLine}${toolLine}`;
 }
 
@@ -987,7 +991,10 @@ export function registerLiveVoiceRoute(server, pool) {
             }
           }
           if (sc.outputTranscription && sc.outputTranscription.text) {
-            sendToClient({ type: 'transcript', role: 'assistant', text: sc.outputTranscription.text });
+            // Strip any function-call notation the model may have vocalized (e.g. "call:search_properties{...}")
+            const rawOut = sc.outputTranscription.text;
+            const cleanOut = rawOut.replace(/call:\w[\w.]*\{[^}]*\}?/g, '').replace(/\s{2,}/g, ' ').trim();
+            if (cleanOut) sendToClient({ type: 'transcript', role: 'assistant', text: cleanOut });
           }
           if (sc.inputTranscription && sc.inputTranscription.text) {
             sendToClient({ type: 'transcript', role: 'user', text: sc.inputTranscription.text });

@@ -999,6 +999,16 @@
   function toggleLang() {
     lang = lang === 'en' ? 'am' : 'en';
     updateUIText();
+
+    /* If a live voice session is running, close it and reopen with the new
+       language. The new session's init message will carry the updated lang
+       so the Gemini Live API gets the correct speechConfig.languageCode and
+       system instruction from the start. */
+    if (liveActive || liveConnecting) {
+      stopLiveVoice();
+      setTimeout(function () { startLiveVoice(); }, 350);
+    }
+
     fetch('/api/ai/greeting/' + lang, { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : { greeting: '' }; })
       .then(function (data) {
@@ -1500,12 +1510,17 @@
     }
 
     if (msg.type === 'transcript') {
+      /* Strip any function-call notation that leaked into the transcript
+         (e.g. "call:search_properties{propertyType:Apartment...}") — the
+         server already filters this, but defence-in-depth here too. */
+      var transcriptText = (msg.text || '').replace(/call:\w[\w.]*\{[^}]*\}?/g, '').replace(/\s{2,}/g, ' ').trim();
+      if (!transcriptText) return;
       if (msg.role === 'user') {
         if (!liveUserMsgEl) liveUserMsgEl = liveTranscriptBubble('user');
-        liveUserMsgEl.textContent = (liveUserMsgEl.textContent || '') + msg.text;
+        liveUserMsgEl.textContent = (liveUserMsgEl.textContent || '') + transcriptText;
       } else {
         if (!liveAiMsgEl) liveAiMsgEl = liveTranscriptBubble('ai');
-        liveAiMsgEl.textContent = (liveAiMsgEl.textContent || '') + msg.text;
+        liveAiMsgEl.textContent = (liveAiMsgEl.textContent || '') + transcriptText;
       }
       scrollToBottom();
       return;
