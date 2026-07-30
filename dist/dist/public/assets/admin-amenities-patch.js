@@ -118,13 +118,13 @@
     if (document.getElementById("pa-hide-native-features-style")) return;
     const style = document.createElement("style");
     style.id = "pa-hide-native-features-style";
-    // Hide the input row that contains the native "Add a feature" input.
-    // :has() is supported in all modern browsers and survives React re-renders.
-    style.textContent = [
-      /* the div wrapping the native input + Add button */
-      'div:has(> input[placeholder*="Swimming Pool"])',
-      'div:has(input[placeholder*="Swimming Pool"])',
-    ].join(",") + " { display: none !important; }";
+    // Use ONLY the direct-child selector (>) so we only hide the immediate
+    // wrapper div of the input, never a high-level ancestor.
+    // Scoped to form elements to be extra safe.
+    style.textContent =
+      'form div:has(> input[placeholder*="Swimming Pool"]),' +
+      'form div:has(> input[placeholder*="Add a feature"])' +
+      ' { display: none !important; }';
     document.head.appendChild(style);
   }
 
