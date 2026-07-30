@@ -1,24 +1,22 @@
 /*
- * Some property-type card images use dead/hotlink-blocked Unsplash URLs.
+ * Redirect all property-type card Unsplash URLs to locally-served assets
+ * so the homepage grid never relies on external hotlink-able images.
  *
- * Previous approaches (MutationObserver, onerror) failed because:
- *  - React re-renders reset the src after DOM patches.
- *  - Unsplash returns HTTP 200 for the Apartment URL (a placeholder),
- *    so onerror never fires.
- *
- * Fix: override HTMLImageElement.prototype's `src` setter so any attempt
- * to set a broken URL — even from React's virtual DOM reconciliation —
- * is silently redirected to a local asset BEFORE the request is made.
- * This runs in the <head> before React hydrates.
+ * Runs in the <head> before React hydrates, patching the img src setter
+ * so even React re-renders cannot restore the dead Unsplash URL.
  */
 (function () {
-  if (window.__paPropertyTypeImageFixV2__) return;
-  window.__paPropertyTypeImageFixV2__ = true;
+  if (window.__paPropertyTypeImageFixV3__) return;
+  window.__paPropertyTypeImageFixV3__ = true;
 
-  // Map: substring of bad URL → local replacement
+  // Map: substring of Unsplash URL → local replacement
   var URL_MAP = [
-    { match: 'photo-1545324418', replacement: '/assets/apartment-property-type.jpg' }, // Apartment
-    { match: 'photo-1622015663084', replacement: '/assets/villa-property-type.jpg' }   // Villa
+    { match: 'photo-1545324418',    replacement: '/assets/apartment-property-type.jpg'  }, // Apartment (old bundle URL)
+    { match: 'photo-1622015663084', replacement: '/assets/villa-property-type.jpg'       }, // Villa (old bundle URL)
+    { match: 'photo-1580587771525', replacement: '/assets/house-property-type.jpg'       }, // House
+    { match: 'photo-1626178793926', replacement: '/assets/condo-property-type.jpg'       }, // Condo
+    { match: 'photo-1600607687939', replacement: '/assets/townhouse-property-type.jpg'   }, // Townhouse
+    { match: 'photo-1500382017468', replacement: '/assets/land-property-type.jpg'        }  // Land
   ];
 
   function redirectUrl(value) {
