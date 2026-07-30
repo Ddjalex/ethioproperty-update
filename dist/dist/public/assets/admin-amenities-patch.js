@@ -114,15 +114,32 @@
     return input.parentElement;
   }
 
+  function injectNativeFeaturesHideStyle() {
+    if (document.getElementById("pa-hide-native-features-style")) return;
+    const style = document.createElement("style");
+    style.id = "pa-hide-native-features-style";
+    // Hide the input row that contains the native "Add a feature" input.
+    // :has() is supported in all modern browsers and survives React re-renders.
+    style.textContent = [
+      /* the div wrapping the native input + Add button */
+      'div:has(> input[placeholder*="Swimming Pool"])',
+      'div:has(input[placeholder*="Swimming Pool"])',
+    ].join(",") + " { display: none !important; }";
+    document.head.appendChild(style);
+  }
+
   function hideOldFeaturesUI(root, featureRow) {
+    // Inject a persistent CSS rule so React re-renders can't bring it back.
+    injectNativeFeaturesHideStyle();
+
     if (featureRow && featureRow.style) featureRow.style.display = "none";
     if (!root) return;
-    // Only hide leaf-level text nodes (p, span, label) that exactly match
-    // the duplicate label text — never hide divs, which risk hiding the
-    // patch container along with the native content.
-    const nodes = Array.from(root.querySelectorAll("p,span,label"));
+    // Also hide matching text nodes (belt-and-suspenders for the label text).
+    const nodes = Array.from(root.querySelectorAll("p,span,label,div"));
     for (const n of nodes) {
       if (!n || n.closest("#amenities-features-patch")) continue;
+      // Only target leaf-level or near-leaf elements to avoid hiding containers.
+      if (n.tagName === "DIV" && n.querySelectorAll("input,button,textarea").length > 0) continue;
       const t = normStr(n.textContent).toLowerCase();
       if (!t) continue;
       if (
