@@ -369,6 +369,11 @@ async function runMigrations(pool) {
   await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_hours_weekday TEXT`).catch(() => {});
   await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_hours_saturday TEXT`).catch(() => {});
   await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_hours_sunday TEXT`).catch(() => {});
+  // Contact section image + social links
+  await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS contact_section_image TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS linkedin_url TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS tiktok_url TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS youtube_url TEXT`).catch(() => {});
   // Seed defaults on first run (only if NULL)
   await pool.query(`
     UPDATE site_settings SET
@@ -523,58 +528,74 @@ function registerBlogSSRRoutes(app, pool) {
 
 /* ─── CONTACT INFO ROUTES ────────────────────────────── */
 function registerContactInfoRoutes(app, pool) {
-  // Public GET – returns contact info including business hours
+  // Public GET – returns contact info including business hours, image, social links
   app.get('/api/contact-info', async (req, res) => {
     try {
       const { rows } = await pool.query('SELECT * FROM site_settings WHERE id = 1');
       const s = rows[0] || {};
       res.json({
-        address:              s.address              || 'Bole Road, Atlas Building\n4th Floor, Office 407\nAddis Ababa, Ethiopia',
-        phone:                s.primary_phone        || '0952000777',
-        email:                s.email                || 'ethioproperty1@gmail.com',
-        businessHoursWeekday: s.business_hours_weekday  || 'Monday - Friday: 8:30 AM - 5:30 PM',
-        businessHoursSaturday:s.business_hours_saturday || 'Saturday: 9:00 AM - 3:00 PM',
-        businessHoursSunday:  s.business_hours_sunday   || 'Sunday: Closed',
+        address:               s.address              || 'Bole Road, Atlas Building\n4th Floor, Office 407\nAddis Ababa, Ethiopia',
+        phone:                 s.primary_phone        || '0952000777',
+        email:                 s.email                || 'ethioproperty1@gmail.com',
+        businessHoursWeekday:  s.business_hours_weekday  || 'Monday - Friday: 8:30 AM - 5:30 PM',
+        businessHoursSaturday: s.business_hours_saturday || 'Saturday: 9:00 AM - 3:00 PM',
+        businessHoursSunday:   s.business_hours_sunday   || 'Sunday: Closed',
+        contactSectionImage:   s.contact_section_image   || null,
+        facebookUrl:           s.facebook_url            || null,
+        linkedinUrl:           s.linkedin_url            || null,
+        tiktokUrl:             s.tiktok_url              || null,
+        youtubeUrl:            s.youtube_url             || null,
       });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });
 
-  // Admin PUT – saves contact info including business hours
+  // Admin PUT – saves contact info including business hours, image, social links
   app.put('/api/admin/contact-info', isAdmin, async (req, res) => {
     try {
       const {
         address, phone, email,
         businessHoursWeekday, businessHoursSaturday, businessHoursSunday,
+        contactSectionImage,
+        facebookUrl, linkedinUrl, tiktokUrl, youtubeUrl,
       } = req.body || {};
+      const v = (val) => (val !== undefined ? val : null);
       await pool.query(`
         UPDATE site_settings SET
-          address                 = COALESCE($1, address),
-          primary_phone           = COALESCE($2, primary_phone),
-          email                   = COALESCE($3, email),
-          business_hours_weekday  = COALESCE($4, business_hours_weekday),
-          business_hours_saturday = COALESCE($5, business_hours_saturday),
-          business_hours_sunday   = COALESCE($6, business_hours_sunday),
+          address                 = COALESCE($1,  address),
+          primary_phone           = COALESCE($2,  primary_phone),
+          email                   = COALESCE($3,  email),
+          business_hours_weekday  = COALESCE($4,  business_hours_weekday),
+          business_hours_saturday = COALESCE($5,  business_hours_saturday),
+          business_hours_sunday   = COALESCE($6,  business_hours_sunday),
+          contact_section_image   = COALESCE($7,  contact_section_image),
+          facebook_url            = COALESCE($8,  facebook_url),
+          linkedin_url            = COALESCE($9,  linkedin_url),
+          tiktok_url              = COALESCE($10, tiktok_url),
+          youtube_url             = COALESCE($11, youtube_url),
           updated_at              = NOW()
         WHERE id = 1
       `, [
-        address              !== undefined ? address              : null,
-        phone                !== undefined ? phone                : null,
-        email                !== undefined ? email                : null,
-        businessHoursWeekday !== undefined ? businessHoursWeekday : null,
-        businessHoursSaturday!== undefined ? businessHoursSaturday: null,
-        businessHoursSunday  !== undefined ? businessHoursSunday  : null,
+        v(address), v(phone), v(email),
+        v(businessHoursWeekday), v(businessHoursSaturday), v(businessHoursSunday),
+        v(contactSectionImage),
+        v(facebookUrl), v(linkedinUrl), v(tiktokUrl), v(youtubeUrl),
       ]);
       const { rows } = await pool.query('SELECT * FROM site_settings WHERE id = 1');
       const s = rows[0] || {};
       res.json({
-        address:              s.address,
-        phone:                s.primary_phone,
-        email:                s.email,
-        businessHoursWeekday: s.business_hours_weekday,
-        businessHoursSaturday:s.business_hours_saturday,
-        businessHoursSunday:  s.business_hours_sunday,
+        address:               s.address,
+        phone:                 s.primary_phone,
+        email:                 s.email,
+        businessHoursWeekday:  s.business_hours_weekday,
+        businessHoursSaturday: s.business_hours_saturday,
+        businessHoursSunday:   s.business_hours_sunday,
+        contactSectionImage:   s.contact_section_image,
+        facebookUrl:           s.facebook_url,
+        linkedinUrl:           s.linkedin_url,
+        tiktokUrl:             s.tiktok_url,
+        youtubeUrl:            s.youtube_url,
       });
     } catch (e) {
       res.status(500).json({ error: e.message });
