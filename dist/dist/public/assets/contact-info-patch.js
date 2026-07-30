@@ -108,26 +108,76 @@
 
   function applyContactImage(info) {
     if (!info.contactSectionImage) return;
+    var url = 'url("' + info.contactSectionImage + '")';
+
+    // Strategy 1: find any div whose backgroundImage style contains the
+    // hardcoded addis-bg.jpg and replace it with the admin-uploaded image.
+    var allDivs = document.querySelectorAll('div[style*="background"]');
+    for (var i = 0; i < allDivs.length; i++) {
+      var bg = allDivs[i].style.backgroundImage || '';
+      if (bg.includes('addis-bg.jpg')) {
+        allDivs[i].style.backgroundImage = url;
+        return;
+      }
+    }
+
+    // Strategy 2: fallback — find the contact section and look for any div
+    // with a backgroundImage set (any value).
     var section = findContactSection();
-    if (!section) return;
-    // The left side image is the first <img> inside the contact section
-    // that is NOT a small icon (width > 100px or no width set)
-    var imgs = section.querySelectorAll('img');
-    for (var i = 0; i < imgs.length; i++) {
-      var img = imgs[i];
-      // Skip tiny icons / logo images
-      var w = img.naturalWidth || img.width || img.offsetWidth || 0;
-      if (w > 0 && w < 80) continue;
-      var src = (img.getAttribute('src') || '');
-      // Skip logo/brand images
-      if (src.includes('ethioproperty') || src.includes('favicon') || src.includes('avatar')) continue;
-      img.src = info.contactSectionImage;
-      img.style.objectFit = 'cover';
-      break;
+    if (section) {
+      var sectionDivs = section.querySelectorAll('div');
+      for (var j = 0; j < sectionDivs.length; j++) {
+        var sbg = sectionDivs[j].style.backgroundImage || '';
+        if (sbg && sbg !== 'none') {
+          sectionDivs[j].style.backgroundImage = url;
+          return;
+        }
+      }
+    }
+
+    // Strategy 3: last resort — find first large <img> in the contact section
+    if (section) {
+      var imgs = section.querySelectorAll('img');
+      for (var k = 0; k < imgs.length; k++) {
+        var img = imgs[k];
+        var w = img.naturalWidth || img.width || img.offsetWidth || 0;
+        if (w > 0 && w < 80) continue;
+        var src = (img.getAttribute('src') || '');
+        if (src.includes('ethioproperty') || src.includes('favicon') || src.includes('avatar')) continue;
+        img.src = info.contactSectionImage;
+        img.style.objectFit = 'cover';
+        return;
+      }
     }
   }
 
   var applied = false;
+  var imageApplied = false;
+  var cachedInfo = null;
+
+  // Retry image replacement independently — the React bundle sets the
+  // background-image asynchronously, so we keep trying for up to ~3 s.
+  var IMAGE_RETRY_DELAYS = [300, 600, 1000, 1500, 2500];
+  function scheduleImageRetries() {
+    IMAGE_RETRY_DELAYS.forEach(function (delay) {
+      setTimeout(function () {
+        if (imageApplied) return;
+        if (!cachedInfo) return;
+        var path = window.location.pathname;
+        if (path !== '/' && path !== '/contact' && !path.startsWith('/?')) return;
+        applyContactImage(cachedInfo);
+        // Check if we actually replaced something
+        var allDivs = document.querySelectorAll('div[style*="background"]');
+        for (var i = 0; i < allDivs.length; i++) {
+          var bg = allDivs[i].style.backgroundImage || '';
+          if (bg.includes(cachedInfo.contactSectionImage)) {
+            imageApplied = true;
+            break;
+          }
+        }
+      }, delay);
+    });
+  }
 
   async function patch() {
     if (applied) return;
@@ -136,15 +186,22 @@
 
     var info = await getContactInfo();
     if (!info) return;
+    cachedInfo = info;
 
     applyContactText(info);
     applySocialLinks(info);
     applyContactImage(info);
     applied = true;
+
+    // Schedule retries for the image in case React hasn't rendered it yet
+    if (info.contactSectionImage) {
+      scheduleImageRetries();
+    }
   }
 
   function schedulePatch() {
     applied = false;
+    imageApplied = false;
     setTimeout(patch, 300);
   }
 
