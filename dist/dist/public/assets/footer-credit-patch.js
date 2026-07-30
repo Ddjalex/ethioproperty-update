@@ -8,11 +8,11 @@
 
     var bar = document.createElement('div');
     bar.setAttribute(ATTR, 'true');
-    bar.style.cssText = 'width:100%;text-align:center;padding:10px 0 8px;font-size:13px;color:#ccc;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:8px;';
+    bar.style.cssText = 'width:100%;text-align:center;padding:8px 0 10px;font-size:13px;color:#aaa;border-top:1px solid rgba(255,255,255,0.1);margin-top:8px;';
 
-    bar.innerHTML = 'Made in \u2764\ufe0f with <a href="https://neodigitalsolutions.com/" target="_blank" rel="noopener noreferrer" style="color:#ccc;text-decoration:underline;text-underline-offset:2px;">https://neodigitalsolutions.com/</a>';
+    bar.innerHTML = 'Made in \u2764\ufe0f with <a href="https://neodigitalsolutions.com/" target="_blank" rel="noopener noreferrer" style="color:#aaa;text-decoration:underline;text-underline-offset:2px;">https://neodigitalsolutions.com/</a>';
 
-    footer.insertBefore(bar, footer.firstChild);
+    footer.appendChild(bar);
   }
 
   var timer;
