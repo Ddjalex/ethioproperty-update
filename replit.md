@@ -1,55 +1,36 @@
 # EthioProperty / Prime Addis
 
-## Overview
-A real-estate listing site for Addis Ababa, Ethiopia ("EthioProperty" / "Prime Addis" branding). Full-stack Express + React app with property listings, an admin panel, a Gemini-powered "Ask AI" chat widget, lead capture/newsletter subscription, and a blog.
+A real estate listing platform for properties in Addis Ababa and Ethiopia. Fullstack app built with React (frontend) and Express (backend), served as a pre-compiled bundle.
 
-## Architecture notes (important — imported project)
-- This repo does **not** contain live `server/`/`client/` source. The runnable app is the pre-built bundle at `dist/dist/index.js` (server) serving `dist/dist/public` (static client) and a set of runtime "patch" JS files injected into the page.
-- `_source_primeaddis/` and the zip archives (`dub.zip`, `zipFile.zip`) are older/reference compiled copies — not the canonical source. Do not copy branding, colors, footer, logo, or SEO tags from `_source_primeaddis`; it belongs to a different property (Prime Addis) than what's live now.
-- `extensions/features.js` holds custom feature backend code (blog CRUD, etc.) loaded at runtime.
+## Stack
+- **Frontend**: React 18, Tailwind CSS, Radix UI, Wouter, TanStack Query
+- **Backend**: Express, Drizzle ORM, PostgreSQL (Neon)
+- **Auth**: Passport.js (local + Google OAuth optional)
+- **AI**: Gemini Live (voice-to-voice)
+- **Payments**: Stripe
+- **Email**: AWS SES (optional)
 
 ## Running the app
-- Workflow **Start application** runs `NODE_ENV=production node dist/dist/index.js` on port 5000.
-- Requires `npm install` for `node_modules` (already installed).
-- Requires the `DATABASE_URL` secret to point at the real production Neon database.
+The workflow `Start application` runs: `NODE_ENV=production node start.js`
 
-## Database — CRITICAL
-- Uses an external **Neon** Postgres database, not Replit's built-in database. The correct host is `ep-delicate-term-aecpdauf-pooler.c-2.us-east-2.aws.neon.tech`.
-- **Never** let Replit auto-provision/attach its own Postgres database for this project — always verify `DATABASE_URL`'s host matches the Neon host above before running any DB operation.
-- The database already holds real production data (as of setup: 64 properties, 6 users, 13 tables). **Never** drop/recreate the schema or reseed it.
-- **Security issue (known, unresolved):** on every server startup the app resets the default admin account to a weak, hardcoded credential (visible in server startup logs). This is a real bootstrap-time write against the production database — starting the server is not a read-only action for the admin account. Needs a proper fix (e.g. only seed the admin account if none exists, and require an env-provided password) before this is safe to leave running unattended.
+`start.js` sets `DATABASE_URL` from `NEON_DATABASE_URL`, then launches `dist/dist/index.js` on port 5000.
 
-## Known in-progress / recent work (do not rebuild)
-- Map + price range widget (`subcities-map-patch.js`)
-- "Ask AI" (Gemini) chat panel with polished UI, admin prompt editor, bottom-left launcher button
-- Lead capture (`visitor-subscribe-patch.js`, `admin-subscribers-patch.js`)
-- Blog: public `/blog` + `/blog/:slug`, admin "Manage Blog" UI, backend CRUD in `extensions/features.js`
-- Tawk.to widget is hidden via CSS but still runs in the background (not removed)
-- Homepage search widget redesign was requested but not yet confirmed applied — last thing in progress before this session
+## Required secrets
+- `NEON_DATABASE_URL` — Neon PostgreSQL connection string
+- `SESSION_SECRET` — Express session secret
 
-## Secrets configured
-- `SESSION_SECRET`
-- `DATABASE_URL` (Neon production DB — set as a secret to override Replit's auto-provisioned Postgres, which otherwise silently takes over this env var on fresh imports/checkouts)
+## Optional secrets (features disabled if absent)
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google OAuth login
+- `GEMINI_API_KEY` — AI voice assistant
+- `STRIPE_SECRET_KEY` — Payments
+- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` / `EMAIL_FROM` — Email via SES
 
-## Setup status (as of migration — July 11, 2026)
-- `npm install` run, packages in place. Note: on a fresh import `node_modules` is not carried over even though `package-lock.json` is — always run `npm install` before starting the workflow.
-- Replit runtime-manages `DATABASE_URL` (points to local `helium` Postgres). Workaround: `start.js` wrapper overrides it with `NEON_DATABASE_URL` secret before launching the app.
-- Workflow command: `NODE_ENV=production node start.js` (port 5000).
-- Neon DB confirmed connected: `ep-delicate-term-aecpdauf-pooler.c-2.us-east-2.aws.neon.tech` — homepage loads successfully, 64 properties render.
-- Note: the `NEON_DATABASE_URL` secret also does not carry over on a fresh import/checkout and must be re-entered by the user each time (re-confirmed working July 11, 2026).
-- Known issue: admin password is reset to `admin123` on every boot (see Database section).
-- Fixed (July 13, 2026): `ask-ai-bottom-left-button-patch.js` no longer throws `Cannot read properties of null (reading 'appendChild')` — added a `if (!document.body) return` guard in the `inject()` function so the MutationObserver firing before `<body>` exists is handled safely.
-- Re-imported and re-verified running July 11, 2026: `npm install`, `NEON_DATABASE_URL` re-entered, workflow restarted, homepage confirmed loading 64 properties against the real Neon DB.
-- `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` secrets were added this session. Google OAuth routes are now registered and active (`/auth/google`, `/auth/google/callback`) — confirmed in startup logs.
-- Re-imported and re-verified running July 13, 2026: `npm install`, `NEON_DATABASE_URL`/`GEMINI_API_KEY`/`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` re-entered (none carry over on fresh import), workflow restarted, homepage confirmed loading against the real Neon DB. A benign 401 on page load (likely an unauthenticated "check session" call) was observed in the browser console — not investigated further as it didn't affect page rendering.
-- Live voice-to-voice (`/api/ai/live`) switched from `models/gemini-2.5-flash-native-audio-preview-12-2025` to `models/gemini-3.1-flash-live-preview` (July 13, 2026) to fix poor Amharic speech quality — 3.1 has improved multilingual native audio output. This app never updates the system instruction mid-session, so 3.1's lack of mid-session instruction updates does not apply here.
-- All Gemini AI backend code (chat, chat-stream, Gemini TTS, live voice-to-voice) was extracted from `extensions/features.js` into its own file, `extensions/gemini-ai.js` (July 13, 2026), per explicit product decision: **every AI feature uses Gemini only — no other AI/TTS vendor, ever.** A prior attempt used Google Translate's free TTS as an Amharic fallback for both the text-chat "speak" button and the live voice call; this was fully removed (server routes, client patch script logic, and the `/api/ai/tts-google` endpoint) at the user's explicit request. Verified after removal: Gemini's own native audio (live call) and Gemini TTS (text-chat) both produce correct, fluent Amharic — no vendor fallback needed.
-- Re-imported and re-verified running July 15, 2026: `npm install`, `NEON_DATABASE_URL`/`GEMINI_API_KEY`/`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` re-entered (none carry over on fresh import), workflow restarted, homepage confirmed loading against the real Neon DB (64 properties, real branding). Google OAuth and live voice-to-voice routes registered successfully in startup logs.
-- Re-imported and re-verified running July 15, 2026 (second time same day): user asked only to "use my neon database", so only `NEON_DATABASE_URL` was re-entered this time. `npm install` run, workflow restarted, homepage confirmed loading real branding/content against the Neon DB. `GEMINI_API_KEY`/`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` were intentionally left unset — Google OAuth logs "skipped" and Gemini AI features will not work until those secrets are re-added.
-- `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `GOOGLE_SHEETS_ID` re-added July 15, 2026; Google OAuth and Sheets features active again.
-- Live voice (`/api/ai/live`) fixed July 15, 2026, two-part bug: (1) `extensions/gemini-ai.js`'s `LIVE_MODEL` constant had drifted back to `gemini-2.5-flash-native-audio-latest`, which rejects Amharic (`am-ET`) as a `speechConfig.languageCode` — reset to `gemini-3.1-flash-live-preview`, which supports it. (2) The client (`dist/dist/public/assets/ai-voice-assistant-patch.js`) was still sending audio via the deprecated `realtimeInput.mediaChunks` array field; Gemini now requires `realtimeInput.audio` (a single object). Updated the client and bumped its cache-busting query param (`?v=10`) in `dist/dist/public/index.html`. Verified end-to-end with a raw WebSocket test script that completes setup and accepts an audio frame without errors.
-- Re-imported and re-verified running July 15, 2026 (third time same day): user again asked only to use their Neon database, so only `NEON_DATABASE_URL` was re-requested/re-entered. `npm install` run, workflow restarted, homepage confirmed loading real branding/content (64 properties) against the Neon DB. `GEMINI_API_KEY`/`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/Sheets secrets were not re-added this session — Google OAuth logs "skipped" and Gemini AI features will not work until those are re-added.
-- Re-imported and re-verified running July 30, 2026: user again asked only to use their Neon database, so only `NEON_DATABASE_URL` was re-requested/re-entered. `npm install` run, workflow restarted, homepage confirmed loading against the Neon DB. `GEMINI_API_KEY`/`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/Sheets secrets were not re-added — Google OAuth logs "skipped" and Gemini AI features will not work until those are re-added.
+## Project structure
+- `dist/dist/index.js` — compiled server bundle (ESM)
+- `dist/public/` — compiled frontend assets
+- `extensions/` — feature extensions loaded at runtime (`features.js`, `gemini-ai.js`)
+- `uploads/` — user-uploaded property images
+- `start.js` — entrypoint that wires NEON_DATABASE_URL then spawns the server
 
-## Optional/unused integrations referenced in code
-AWS SES, Gmail SMTP, Brevo, Gemini API — currently not configured; email sending logs to console only when unset.
+## User preferences
+<!-- Add user preferences here as they are confirmed -->
