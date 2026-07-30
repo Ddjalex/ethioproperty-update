@@ -365,6 +365,19 @@ async function runMigrations(pool) {
     ALTER TABLE ai_prompts ADD COLUMN IF NOT EXISTS greeting TEXT
   `).catch(() => {});
 
+  // Contact info business-hours columns
+  await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_hours_weekday TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_hours_saturday TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS business_hours_sunday TEXT`).catch(() => {});
+  // Seed defaults on first run (only if NULL)
+  await pool.query(`
+    UPDATE site_settings SET
+      business_hours_weekday  = COALESCE(business_hours_weekday,  'Monday - Friday: 8:30 AM - 5:30 PM'),
+      business_hours_saturday = COALESCE(business_hours_saturday, 'Saturday: 9:00 AM - 3:00 PM'),
+      business_hours_sunday   = COALESCE(business_hours_sunday,   'Sunday: Closed')
+    WHERE id = 1
+  `).catch(() => {});
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS blog_posts (
       id SERIAL PRIMARY KEY,
@@ -508,6 +521,67 @@ function registerBlogSSRRoutes(app, pool) {
   });
 }
 
+/* ─── CONTACT INFO ROUTES ────────────────────────────── */
+function registerContactInfoRoutes(app, pool) {
+  // Public GET – returns contact info including business hours
+  app.get('/api/contact-info', async (req, res) => {
+    try {
+      const { rows } = await pool.query('SELECT * FROM site_settings WHERE id = 1');
+      const s = rows[0] || {};
+      res.json({
+        address:              s.address              || 'Bole Road, Atlas Building\n4th Floor, Office 407\nAddis Ababa, Ethiopia',
+        phone:                s.primary_phone        || '0952000777',
+        email:                s.email                || 'ethioproperty1@gmail.com',
+        businessHoursWeekday: s.business_hours_weekday  || 'Monday - Friday: 8:30 AM - 5:30 PM',
+        businessHoursSaturday:s.business_hours_saturday || 'Saturday: 9:00 AM - 3:00 PM',
+        businessHoursSunday:  s.business_hours_sunday   || 'Sunday: Closed',
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Admin PUT – saves contact info including business hours
+  app.put('/api/admin/contact-info', isAdmin, async (req, res) => {
+    try {
+      const {
+        address, phone, email,
+        businessHoursWeekday, businessHoursSaturday, businessHoursSunday,
+      } = req.body || {};
+      await pool.query(`
+        UPDATE site_settings SET
+          address                 = COALESCE($1, address),
+          primary_phone           = COALESCE($2, primary_phone),
+          email                   = COALESCE($3, email),
+          business_hours_weekday  = COALESCE($4, business_hours_weekday),
+          business_hours_saturday = COALESCE($5, business_hours_saturday),
+          business_hours_sunday   = COALESCE($6, business_hours_sunday),
+          updated_at              = NOW()
+        WHERE id = 1
+      `, [
+        address              !== undefined ? address              : null,
+        phone                !== undefined ? phone                : null,
+        email                !== undefined ? email                : null,
+        businessHoursWeekday !== undefined ? businessHoursWeekday : null,
+        businessHoursSaturday!== undefined ? businessHoursSaturday: null,
+        businessHoursSunday  !== undefined ? businessHoursSunday  : null,
+      ]);
+      const { rows } = await pool.query('SELECT * FROM site_settings WHERE id = 1');
+      const s = rows[0] || {};
+      res.json({
+        address:              s.address,
+        phone:                s.primary_phone,
+        email:                s.email,
+        businessHoursWeekday: s.business_hours_weekday,
+        businessHoursSaturday:s.business_hours_saturday,
+        businessHoursSunday:  s.business_hours_sunday,
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+}
+
 /* ─── MAIN EXPORT ────────────────────────────────────── */
 export async function setup(app, server) {
   let pool;
@@ -517,6 +591,7 @@ export async function setup(app, server) {
     await runMigrations(pool);
     registerBlogRoutes(app, pool);
     registerBlogSSRRoutes(app, pool);
+    registerContactInfoRoutes(app, pool);
     registerAIRoutes(app, pool);
     registerGoogleAuthRoutes(app, pool);
     registerLiveVoiceRoute(server, pool);
