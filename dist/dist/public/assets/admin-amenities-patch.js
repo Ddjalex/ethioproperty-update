@@ -117,13 +117,33 @@
   function hideOldFeaturesUI(root, featureRow) {
     if (featureRow && featureRow.style) featureRow.style.display = "none";
     if (!root) return;
-    const nodes = Array.from(root.querySelectorAll("p,div,span"));
+    const nodes = Array.from(root.querySelectorAll("p,div,span,label"));
     for (const n of nodes) {
       if (!n || n.closest("#amenities-features-patch")) continue;
       const t = normStr(n.textContent).toLowerCase();
       if (!t) continue;
-      if (t.includes("no features added") || t.includes("no features added yet")) {
+      if (
+        t.includes("no features added") ||
+        t.includes("no features added yet") ||
+        t === "add features and amenities of the property" ||
+        t.includes("add features and amenities of the property")
+      ) {
+        // Hide the node itself and walk up to hide any wrapper that contains
+        // only this content (input row + label together)
         n.style.display = "none";
+        // Also try to hide the nearest ancestor that wraps just this label + the input row
+        let parent = n.parentElement;
+        for (let i = 0; i < 5 && parent && !parent.closest("#amenities-features-patch"); i++) {
+          const txt = normStr(parent.textContent).toLowerCase();
+          if (
+            txt.includes("add features and amenities of the property") &&
+            (txt.includes("add a feature") || txt.includes("no features added"))
+          ) {
+            parent.style.display = "none";
+            break;
+          }
+          parent = parent.parentElement;
+        }
       }
     }
   }
