@@ -166,7 +166,8 @@ var init_schema = __esm({
     });
     propertyTypes = pgTable("property_types", {
       id: serial("id").primaryKey(),
-      name: text("name").notNull().unique()
+      name: text("name").notNull().unique(),
+      imageUrl: text("image_url")
     });
     insertPropertyTypeSchema = createInsertSchema(propertyTypes).omit({
       id: true

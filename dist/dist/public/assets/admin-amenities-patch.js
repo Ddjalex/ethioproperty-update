@@ -100,6 +100,27 @@
     return root || null;
   }
 
+  // Find the entire native Features card — the common ancestor of
+  // the "Features" heading AND the "Add a feature" input.
+  function findNativeCard() {
+    const h = findNativeHeadingEl();
+    if (!h) return null;
+    // Find the native feature input (NOT inside the patch)
+    const inputs = Array.from(document.querySelectorAll('input[placeholder*="Add a feature" i]'));
+    const input = inputs.find(el => !el.closest("#amenities-features-patch"));
+    if (!input) {
+      // Fall back: walk up 3 levels from heading
+      return h.parentElement?.parentElement?.parentElement || h.parentElement;
+    }
+    // Walk up from heading until we contain the input — that's the card
+    let node = h.parentElement;
+    for (let i = 0; i < 10 && node; i++) {
+      if (node.contains(input)) return node;
+      node = node.parentElement;
+    }
+    return null;
+  }
+
   function findFeatureInputRow(root) {
     if (!root) return null;
     const inputs = Array.from(root.querySelectorAll('input[placeholder*="feature" i], input[aria-label*="feature" i]'));
@@ -377,18 +398,16 @@
     if (!isAdminPropertiesPage()) return;
 
     dedupeAmenitiesBoxes();
+
+    // Always keep native card hidden once the patch is active
+    const nativeCard = findNativeCard();
+    if (nativeCard) nativeCard.style.display = "none";
+
     if (document.getElementById("amenities-features-patch")) {
-      const root = findNativeFeaturesSectionRoot();
-      const row = root ? findFeatureInputRow(root) : null;
-      hideOldFeaturesUI(root, row);
-      return;
+      return; // already injected
     }
 
-    const root = findNativeFeaturesSectionRoot();
-    if (!root) return;
-
-    const headingEl = findNativeHeadingEl();
-    const featureRow = findFeatureInputRow(root);
+    if (!nativeCard) return; // native section not rendered yet — try again later
 
     let initial = [];
     try {
@@ -398,15 +417,9 @@
 
     const ui = buildAmenitiesUI({ initialSelected: initial });
 
-    if (featureRow && featureRow.insertAdjacentElement) {
-      featureRow.insertAdjacentElement("afterend", ui);
-    } else if (headingEl && headingEl.insertAdjacentElement) {
-      headingEl.insertAdjacentElement("afterend", ui);
-    } else {
-      root.appendChild(ui);
-    }
-
-    hideOldFeaturesUI(root, featureRow);
+    // Insert BEFORE the native card so the patch stands alone (no duplicate)
+    nativeCard.insertAdjacentElement("beforebegin", ui);
+    nativeCard.style.display = "none";
   }
 
   async function prefillVideoIfEdit() {
