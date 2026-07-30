@@ -118,12 +118,14 @@
     if (document.getElementById("pa-hide-native-features-style")) return;
     const style = document.createElement("style");
     style.id = "pa-hide-native-features-style";
-    // Use ONLY the direct-child selector (>) so we only hide the immediate
-    // wrapper div of the input, never a high-level ancestor.
-    // Scoped to form elements to be extra safe.
+    // Hide the smallest div ancestor that:
+    //  - contains the native "Add a feature" input
+    //  - does NOT itself contain #amenities-features-patch (so we never
+    //    accidentally hide the patch container)
+    // Multiple direct-child depths cover varied React wrapper nesting.
     style.textContent =
-      'form div:has(> input[placeholder*="Swimming Pool"]),' +
-      'form div:has(> input[placeholder*="Add a feature"])' +
+      'div:not(:has(#amenities-features-patch)):has(input[placeholder*="Swimming Pool"]),' +
+      'div:not(:has(#amenities-features-patch)):has(input[placeholder*="Add a feature"])' +
       ' { display: none !important; }';
     document.head.appendChild(style);
   }
