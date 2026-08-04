@@ -401,6 +401,14 @@ async function runMigrations(pool) {
     )
   `);
 
+  // Dedicated amenities master list table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS amenities (
+      id   SERIAL PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE
+    )
+  `);
+
   console.log('[extensions] DB migrations complete');
 }
 
@@ -528,34 +536,41 @@ function registerBlogSSRRoutes(app, pool) {
 
 /* ─── CONTACT INFO ROUTES ────────────────────────────── */
 function registerAmenitiesRoutes(app, pool) {
+  const DEFAULT_AMENITIES = [
+    'Central AC', 'Hardwood Floors', 'Fireplace', 'Walk-in Closets',
+    'Stainless Appliances', 'Swimming Pool', 'Gym / Fitness Center',
+    'Elevator', 'Parking', 'Security', 'Balcony', 'Garden', 'Laundry',
+    'Generator', 'Internet Ready',
+  ];
+
   /* GET /api/admin/amenities
-     Returns every unique amenity string found across all property features
-     columns, merged with a fixed default list.  Admin-only so the endpoint
-     is not crawlable, but the data is non-sensitive. */
+     Returns the full master list: defaults + saved custom entries + any
+     additional strings found in existing property features JSONB. */
   app.get('/api/admin/amenities', isAdmin, async (req, res) => {
     try {
-      const DEFAULT_AMENITIES = [
-        'Central AC', 'Hardwood Floors', 'Fireplace', 'Walk-in Closets',
-        'Stainless Appliances', 'Swimming Pool', 'Gym / Fitness Center',
-        'Elevator', 'Parking', 'Security', 'Balcony', 'Garden', 'Laundry',
-        'Generator', 'Internet Ready',
-      ];
-
-      // Pull every non-null features value from the properties table.
-      // features is stored as JSONB (array of strings).
-      const { rows } = await pool.query(
-        `SELECT features FROM properties WHERE features IS NOT NULL AND features != 'null'::jsonb`
-      );
-
       const seen = new Set(DEFAULT_AMENITIES.map(a => a.toLowerCase()));
       const all = [...DEFAULT_AMENITIES];
 
-      for (const row of rows) {
+      // 1. Amenities saved explicitly via the dedicated table
+      const { rows: savedRows } = await pool.query(
+        `SELECT name FROM amenities ORDER BY id ASC`
+      );
+      for (const row of savedRows) {
+        const s = (row.name ?? '').toString().trim();
+        if (!s) continue;
+        const k = s.toLowerCase();
+        if (seen.has(k)) continue;
+        seen.add(k);
+        all.push(s);
+      }
+
+      // 2. Any additional strings buried in property features JSONB
+      const { rows: propRows } = await pool.query(
+        `SELECT features FROM properties WHERE features IS NOT NULL AND features != 'null'::jsonb`
+      );
+      for (const row of propRows) {
         let arr = row.features;
-        // pg returns jsonb as a JS value already; guard for string fallback
-        if (typeof arr === 'string') {
-          try { arr = JSON.parse(arr); } catch { arr = []; }
-        }
+        if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch { arr = []; } }
         if (!Array.isArray(arr)) continue;
         for (const item of arr) {
           const s = (item ?? '').toString().trim();
@@ -569,7 +584,26 @@ function registerAmenitiesRoutes(app, pool) {
 
       res.json({ amenities: all });
     } catch (e) {
-      console.error('[amenities] Error fetching amenities:', e.message);
+      console.error('[amenities] GET error:', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  /* POST /api/admin/amenities  { name: "Solar Panels" }
+     Persists a new custom amenity to the master table immediately —
+     so it survives page refresh without needing to be attached to a property. */
+  app.post('/api/admin/amenities', isAdmin, async (req, res) => {
+    try {
+      const name = (req.body?.name ?? '').toString().trim();
+      if (!name) return res.status(400).json({ error: 'name is required' });
+
+      await pool.query(
+        `INSERT INTO amenities (name) VALUES ($1) ON CONFLICT (name) DO NOTHING`,
+        [name]
+      );
+      res.json({ ok: true, name });
+    } catch (e) {
+      console.error('[amenities] POST error:', e.message);
       res.status(500).json({ error: e.message });
     }
   });

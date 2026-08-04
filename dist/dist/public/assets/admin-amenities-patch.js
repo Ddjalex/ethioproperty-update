@@ -380,14 +380,22 @@
     btn.style.background = "white";
     btn.style.cursor = "pointer";
 
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const name = normStr(input.value);
       if (!name) return;
       input.value = "";
       const exists = Array.from(container.querySelectorAll('input[type="checkbox"][data-amenity="1"]'))
         .some(c => normStr(c.value).toLowerCase() === name.toLowerCase());
-      if (exists) return;
-      addAmenity(name, true);
+      if (!exists) addAmenity(name, true);
+      // Persist to the master amenities table immediately so it survives refresh
+      try {
+        await _fetch("/api/admin/amenities", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+      } catch {}
     });
 
     addRow.appendChild(input);
