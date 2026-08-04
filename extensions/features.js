@@ -527,6 +527,54 @@ function registerBlogSSRRoutes(app, pool) {
 }
 
 /* ─── CONTACT INFO ROUTES ────────────────────────────── */
+function registerAmenitiesRoutes(app, pool) {
+  /* GET /api/admin/amenities
+     Returns every unique amenity string found across all property features
+     columns, merged with a fixed default list.  Admin-only so the endpoint
+     is not crawlable, but the data is non-sensitive. */
+  app.get('/api/admin/amenities', isAdmin, async (req, res) => {
+    try {
+      const DEFAULT_AMENITIES = [
+        'Central AC', 'Hardwood Floors', 'Fireplace', 'Walk-in Closets',
+        'Stainless Appliances', 'Swimming Pool', 'Gym / Fitness Center',
+        'Elevator', 'Parking', 'Security', 'Balcony', 'Garden', 'Laundry',
+        'Generator', 'Internet Ready',
+      ];
+
+      // Pull every non-null features value from the properties table.
+      // features is stored as JSONB (array of strings).
+      const { rows } = await pool.query(
+        `SELECT features FROM properties WHERE features IS NOT NULL AND features != 'null'::jsonb`
+      );
+
+      const seen = new Set(DEFAULT_AMENITIES.map(a => a.toLowerCase()));
+      const all = [...DEFAULT_AMENITIES];
+
+      for (const row of rows) {
+        let arr = row.features;
+        // pg returns jsonb as a JS value already; guard for string fallback
+        if (typeof arr === 'string') {
+          try { arr = JSON.parse(arr); } catch { arr = []; }
+        }
+        if (!Array.isArray(arr)) continue;
+        for (const item of arr) {
+          const s = (item ?? '').toString().trim();
+          if (!s) continue;
+          const k = s.toLowerCase();
+          if (seen.has(k)) continue;
+          seen.add(k);
+          all.push(s);
+        }
+      }
+
+      res.json({ amenities: all });
+    } catch (e) {
+      console.error('[amenities] Error fetching amenities:', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+}
+
 function registerContactInfoRoutes(app, pool) {
   // Public GET – returns contact info including business hours, image, social links
   app.get('/api/contact-info', async (req, res) => {
@@ -613,6 +661,7 @@ export async function setup(app, server) {
     registerBlogRoutes(app, pool);
     registerBlogSSRRoutes(app, pool);
     registerContactInfoRoutes(app, pool);
+    registerAmenitiesRoutes(app, pool);
     registerAIRoutes(app, pool);
     registerGoogleAuthRoutes(app, pool);
     registerLiveVoiceRoute(server, pool);

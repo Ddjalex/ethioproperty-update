@@ -303,7 +303,17 @@
     return null;
   }
 
-  function buildAmenitiesUI({ initialSelected = [] } = {}) {
+  async function fetchAllAmenities() {
+    try {
+      const res = await _fetch("/api/admin/amenities", { credentials: "include" });
+      if (!res.ok) return DEFAULT_AMENITIES;
+      const data = await res.json();
+      if (Array.isArray(data?.amenities) && data.amenities.length) return data.amenities;
+    } catch {}
+    return DEFAULT_AMENITIES;
+  }
+
+  function buildAmenitiesUI({ initialSelected = [], amenityList = DEFAULT_AMENITIES } = {}) {
     const selectedSet = new Set((initialSelected || []).map(x => normStr(x).toLowerCase()));
 
     const container = document.createElement("div");
@@ -346,7 +356,7 @@
       grid.appendChild(label);
     }
 
-    for (const a of DEFAULT_AMENITIES) addAmenity(a, selectedSet.has(a.toLowerCase()));
+    for (const a of amenityList) addAmenity(a, selectedSet.has(normStr(a).toLowerCase()));
 
     const addRow = document.createElement("div");
     addRow.style.display = "flex";
@@ -418,12 +428,21 @@
     const featureRow = findFeatureInputRow(root);
 
     let initial = [];
+    let amenityList = DEFAULT_AMENITIES;
     try {
-      const existing = await fetchExistingPropertyIfEdit();
+      const [existing, fetched] = await Promise.all([
+        fetchExistingPropertyIfEdit(),
+        fetchAllAmenities(),
+      ]);
       if (existing?.features?.length) initial = existing.features;
+      // Merge fetched master list with any custom items from this property
+      // that may not yet be in the global list
+      const seen = new Set(fetched.map(a => normStr(a).toLowerCase()));
+      const extra = initial.filter(a => !seen.has(normStr(a).toLowerCase()));
+      amenityList = [...fetched, ...extra];
     } catch {}
 
-    const ui = buildAmenitiesUI({ initialSelected: initial });
+    const ui = buildAmenitiesUI({ initialSelected: initial, amenityList });
 
     if (featureRow && featureRow.insertAdjacentElement) {
       featureRow.insertAdjacentElement("afterend", ui);
